@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29905.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cloudsql-proxy-cs", "cloudsql-proxy-cs\cloudsql-proxy-cs.csproj", "{B73F1AFF-983C-49E3-B861-78C1A383E601}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cmd", "cmd\cmd.csproj", "{3A46AA99-19DE-4E40-8D63-1575D033290A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3D0DBFEA-4522-438E-836E-26A86E2D43C3}
+	EndGlobalSection
+EndGlobal
