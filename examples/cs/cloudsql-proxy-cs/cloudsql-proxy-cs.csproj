@@ -5,4 +5,11 @@
     <RootNamespace>cloudsql_proxy_cs</RootNamespace>
   </PropertyGroup>
 
+  <Target Name="BuildCloudSQLProxyDLL" BeforeTargets="CoreBuild" >
+  <Message Importance="High" Text="Building GO Cloud SQL Proxy Dll" />
+	<!--Exec Command="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\build.bat" /-->
+	<Move
+		SourceFiles="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\cloud_sql_proxy.dll"
+		DestinationFolder="$(TargetDir)" />
+  </Target>
 </Project>
