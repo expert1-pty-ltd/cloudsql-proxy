@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net46</TargetFrameworks>
   </PropertyGroup>
-  
+
   <PropertyGroup>
     <RootNamespace>cloudsql_proxy_cs</RootNamespace>
     <PackageProjectUrl>https://github.com/expert1-pty-ltd/cloudsql-proxy</PackageProjectUrl>
@@ -16,20 +16,25 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+  </PropertyGroup>
+
   <ItemGroup>
-    <None Include="$(TargetDir)\cloud_sql_proxy.dll" pack="true" PackagePath="lib" />
+    <None Include="$(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll">
+      <Pack>True</Pack>
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </None>
     <None Include="..\..\..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
-
+  
   <Target Name="BuildCloudSQLProxyDLL" BeforeTargets="DispatchToInnerBuilds">
-    <Message Importance="High" Text="Building GO Cloud SQL Proxy Dll" />
-    <Exec Command="go build -buildmode=c-shared -o cloud_sql_proxy.dll" WorkingDirectory="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\" />
-  </Target>
-  <Target Name="CopyCloudSQLProxyDLL" BeforeTargets="Build">
-    <Message Importance="High" Text="Copying GO Cloud SQL Proxy Dll" />
-    <Copy SourceFiles="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\cloud_sql_proxy.dll" DestinationFolder="$(TargetDir)\" SkipUnchangedFiles="true" />
+    <Message Importance="High" Text="Building GO Cloud SQL Proxy Dll $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" />
+    <Exec Command="go build -buildmode=c-shared -o $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" WorkingDirectory="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\" />
   </Target>
 </Project>
