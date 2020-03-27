@@ -12,10 +12,16 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>cloudsql-proxy-cs</PackageId>
     <Description>A wrapper for Google Cloud SQL Proxy.</Description>
+    <PackageLicenseExpression></PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(TargetDir)\cloud_sql_proxy.dll" pack="true" PackagePath="lib"/>
+    <None Include="$(TargetDir)\cloud_sql_proxy.dll" pack="true" PackagePath="lib" />
+    <None Include="..\..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
   <Target Name="BuildCloudSQLProxyDLL" BeforeTargets="DispatchToInnerBuilds">
@@ -24,6 +30,6 @@
   </Target>
   <Target Name="CopyCloudSQLProxyDLL" BeforeTargets="Build">
     <Message Importance="High" Text="Copying GO Cloud SQL Proxy Dll" />
-    <Copy SourceFiles="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\cloud_sql_proxy.dll" DestinationFolder="$(TargetDir)\" SkipUnchangedFiles="true"/>
+    <Copy SourceFiles="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\cloud_sql_proxy.dll" DestinationFolder="$(TargetDir)\" SkipUnchangedFiles="true" />
   </Target>
 </Project>
