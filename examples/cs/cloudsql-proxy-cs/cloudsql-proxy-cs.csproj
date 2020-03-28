@@ -21,6 +21,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="build\cloudsql-proxy-cs.targets" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <None Include="$(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll">
       <Pack>True</Pack>
       <PackagePath>runtimes\win-x64\native</PackagePath>
