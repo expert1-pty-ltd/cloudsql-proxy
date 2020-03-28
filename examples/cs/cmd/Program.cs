@@ -24,37 +24,47 @@ namespace cmd
             var instance = args.Length == 1 ? args[0] : "";
             var tokenFile = args.Length == 2 ? args[1] : @"google_cloud_key.json";
 
+            // Validate Instance
             if (string.IsNullOrWhiteSpace(instance))
             {
                 NonBlockingConsole.WriteError("Usage: cmd instance [tokenFile]");
             }
 
-            // Create the token source.
-            using (var cts = new CancellationTokenSource())
+            // Validate Token File
+            if (!System.IO.File.Exists(tokenFile))
             {
-                // Pass the token to the cancelable operation.
-                ThreadPool.QueueUserWorkItem(new WaitCallback(DoWork), new object[] { cts.Token, instance, tokenFile });
-
-                NonBlockingConsole.WriteLine("Type :quit to exit");
-                var input = Console.ReadLine().ToLower().Trim();
-                while (input != ":quit" && !cts.IsCancellationRequested)
+                NonBlockingConsole.WriteError("Token File does not exist!");
+                Console.ReadLine();
+            }
+            else
+            {
+                // Create the token source.
+                using (var cts = new CancellationTokenSource())
                 {
-                    switch (input)
-                    {
-                        case "stop":
-                            cts.Cancel();
-                            cloudsql_proxy_cs.Proxy.StopProxy();
-                            break;
-                        default:
-                            NonBlockingConsole.WriteLine("Type :quit to exit");
-                            break;
-                    }
-                    input = Console.ReadLine().ToLower().Trim();
-                }
+                    // Pass the token to the cancelable operation.
+                    ThreadPool.QueueUserWorkItem(new WaitCallback(DoWork), new object[] { cts.Token, instance, tokenFile });
 
-                NonBlockingConsole.WriteDebug("Shutting down thread");
-                cts.Cancel();
-                NonBlockingConsole.WriteDebug("Good bye");
+                    NonBlockingConsole.WriteLine("Type :quit to exit");
+                    var input = Console.ReadLine().ToLower().Trim();
+                    while (input != ":quit" && !cts.IsCancellationRequested)
+                    {
+                        switch (input)
+                        {
+                            case "stop":
+                                cts.Cancel();
+                                cloudsql_proxy_cs.Proxy.StopProxy();
+                                break;
+                            default:
+                                NonBlockingConsole.WriteLine("Type :quit to exit");
+                                break;
+                        }
+                        input = Console.ReadLine().ToLower().Trim();
+                    }
+
+                    NonBlockingConsole.WriteDebug("Shutting down thread");
+                    cts.Cancel();
+                    NonBlockingConsole.WriteDebug("Good bye");
+                }
             }
         }
 
