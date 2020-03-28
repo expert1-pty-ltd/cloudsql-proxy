@@ -13,12 +13,7 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace cmd
 {
@@ -38,7 +33,7 @@ namespace cmd
             using (var cts = new CancellationTokenSource())
             {
                 // Pass the token to the cancelable operation.
-                ThreadPool.QueueUserWorkItem(new WaitCallback(DoWork), new object[] { cts.Token, instance, tokenFile});
+                ThreadPool.QueueUserWorkItem(new WaitCallback(DoWork), new object[] { cts.Token, instance, tokenFile });
 
                 NonBlockingConsole.WriteLine("Type :quit to exit");
                 var input = Console.ReadLine().ToLower().Trim();
@@ -67,7 +62,7 @@ namespace cmd
         {
             CancellationToken token = (CancellationToken)((object[])obj)[0];
             string instance = (string)((object[])obj)[1];
-            string tokenFile  = (string)((object[])obj)[2];
+            string tokenFile = (string)((object[])obj)[2];
 
             if (!token.IsCancellationRequested)
             {
@@ -79,7 +74,6 @@ namespace cmd
                     {
                         NonBlockingConsole.WriteSuccess("Test Passed");
                     }
-
                     proxy.StartProxy(instance, tokenFile);
                 }
             }
