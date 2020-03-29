@@ -41,7 +41,11 @@
   </ItemGroup>
   
   <Target Name="BuildCloudSQLProxyDLL" BeforeTargets="DispatchToInnerBuilds">
-    <Message Importance="High" Text="Building GO Cloud SQL Proxy Dll $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" />
-    <Exec Command="go build -buildmode=c-shared -o $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" WorkingDirectory="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\" />
+    <Message Importance="High" Text="Building GO Cloud SQL Proxy Library (Windows) $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" />
+    <Exec Command="(set CGO_ENABLED=1) &amp;&amp; (set GOARCH=amd64) &amp;&amp; (set GOOS=windows) &amp;&amp; go build -buildmode=c-shared -o $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" WorkingDirectory="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\" />
+    <!--
+    <Message Importance="High" Text="Building GO Cloud SQL Proxy Library (Linux) $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.so" />
+    <Exec Command="(set CGO_ENABLED=1) &amp;&amp; (set GOARCH=amd64) &amp;&amp; (set GOOS=linux) &amp;&amp; go build -buildmode=c-shared -o $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.so" WorkingDirectory="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\" />
+    -->
   </Target>
 </Project>
