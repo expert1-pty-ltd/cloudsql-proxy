@@ -1,10 +1,10 @@
 ## Cloud SQL Proxy .NET Wrapper
 
-The Cloud SQL Proxy .NET Wrapper allows the usage, management, and packaging of [The Cloud SQL Proxy](github.com/GoogleCloudPlatform/cloudsql-proxy)
-inside a .Net application.
+The Cloud SQL Proxy .NET Wrapper allows the usage, management, and packaging of [The Cloud SQL Proxy](https://github.com/GoogleCloudPlatform/cloudsql-proxy)
+inside a .Net application. This may be useful for an application which is installed on a workstation by an inexperienced user, such as a winform/wpf/windows service.
 
 To build from source, ensure you have [go installed](https://golang.org/doc/install)
-,set [GOPATH](https://github.com/golang/go/wiki/GOPATH), 
+,set [GOPATH](https://github.com/golang/go/wiki/GOPATH), and 
 [Installed a C Compiler](http://mingw-w64.org/doku.php/download/mingw-builds)
 
 ## To use from third party applications
