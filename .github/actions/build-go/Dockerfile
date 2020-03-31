@@ -1,7 +1,6 @@
 FROM golang:1.14-buster
 
-COPY lib /lib
-COPY entrypoint.sh /entrypoint.sh
+COPY . .
 
-# Code file to execute when the docker container starts up (`entrypoint.sh`)
-ENTRYPOINT ["/entrypoint.sh"]
+RUN cd lib/cloud_sql_proxy
+RUN . build-linux
