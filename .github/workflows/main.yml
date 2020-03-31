@@ -48,8 +48,8 @@ jobs:
         name: cloud_sql_proxy_libs
         path: .examples\cs\cloudsql-proxy-cs\runtimes
     - name: Unzip Artifacts
-        run: |
-           unzip .examples\cs\cloudsql-proxy-cs\runtimes\cloud_sql_proxy_libs
+      run: |
+        unzip .examples\cs\cloudsql-proxy-cs\runtimes\cloud_sql_proxy_libs
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
