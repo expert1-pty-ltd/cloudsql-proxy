@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: golang:1.14
+    runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Check out code into the Go module directory
