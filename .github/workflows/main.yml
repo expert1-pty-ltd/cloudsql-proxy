@@ -17,9 +17,9 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@master
       - name: Build Linux
-        run: export GOOS=; export GOARCH=; export CGO_ENABLED=; export CXX=; export CC=; go build -buildmode=c-shared -o artifacts/cloud_sql_proxy.so ./lib/cloud_sql_proxy/
+        run: export GOOS=; export GOARCH=; export CGO_ENABLED=; export CXX=; export CC=; go build -buildmode=c-shared -o ./artifacts/cloud_sql_proxy.so ./lib/cloud_sql_proxy/
       - name: Upload artifacts
         uses: actions/upload-artifact@master
         with:
           name: cloud_sql_proxy_libs
-          path: artifact
+          path: ./artifact
