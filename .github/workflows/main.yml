@@ -1,3 +1,5 @@
+name: CI
+
 on:
   push:
     branches: [master]
@@ -7,10 +9,11 @@ jobs:
     name: Build
     runs-on: golang:1.14.1-buster
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - name: Get dependencies
+      - name: build linux binary
         run: |
           cd lib/cloud_sql_proxy
           . build-linux
