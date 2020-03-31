@@ -53,7 +53,7 @@ jobs:
       run: |
         cd examples/cs/cloudsql-proxy-cs
         dotnet build --configuration Release
-        cp *.nupkg ./artifacts
+        cp ./bin/Release/*.nupkg ./artifacts
     - name: Upload artifacts
       uses: actions/upload-artifact@master
       with:
