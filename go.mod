@@ -19,4 +19,3 @@ require (
 	google.golang.org/genproto v0.0.0-20191220162840-803ea799ed88 // indirect
 	google.golang.org/grpc v1.26.0 // indirect
 )
-replace github.com/GoogleCloudPlatform/cloudsql-proxy => ./cloudsql-proxy
