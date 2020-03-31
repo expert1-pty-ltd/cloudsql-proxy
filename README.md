@@ -39,9 +39,56 @@ public extern static void StopProxy();
 
 ## Building cloud_sql_proxy binaries
 
-Building dotnet core app in linux
+### Building go library
 
-### Register Microsoft key and feed
+This has been developed using Debian WSL in Windows 10.
+
+#### Setup environment
+
+```
+sudo apt-get install -y --no-install-recommends g++ gcc libc6-dev make pkg-config
+sudo rm -rf /var/lib/apt/lists/*
+GOLANG_VERSION=1.14.1
+dpkgArch="$(dpkg --print-architecture)";
+goRelArch='linux-amd64';
+goRelSha256='2f49eb17ce8b48c680cdb166ffd7389702c0dec6effa090c324804a5cac8a7f8';
+url="https://golang.org/dl/go${GOLANG_VERSION}.${goRelArch}.tar.gz";
+sudo wget -O go.tgz "$url";
+sudo tar -C /usr/local -xzf go.tgz;
+sudo apt-get update
+sudo apt-get install wget
+sudo apt-get install gcc-multilib
+sudo apt-get install gcc-mingw-w64
+export GOPATH=/go
+export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
+```
+
+add the following to ~/.profile
+
+```
+export GOLANG_VERSION=1.14.1
+export GOPATH=/go
+export PATH="$GOPATH/bin:/usr/local/go/bin:$PATH"
+```
+
+#### Run build
+
+From lib\cloud_sql_proxy
+
+```
+. build-linux
+```
+
+or
+
+```
+. build-windows-64
+```
+
+### Building dotnet core app in linux
+
+#### Register Microsoft key and feed
 
 ```
 sudo apt-get update
@@ -54,8 +101,24 @@ sudo chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg
 sudo chown root:root /etc/apt/sources.list.d/microsoft-prod.list
 ```
 
+#### Install .NET Core SDK
+
 ```
 sudo apt-get update
 sudo apt-get install apt-transport-https
 sudo apt-get install dotnet-sdk-3.1
+```
+
+#### Run build
+
+From examples\cs\cloud_sql_proxy directory
+
+```
+sudo dotnet build -f netcoreapp3.1
+```
+
+From examples\cs\cmd directory
+
+```
+sudo dotnet build
 ```

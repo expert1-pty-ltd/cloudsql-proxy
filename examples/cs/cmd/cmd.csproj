@@ -8,11 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\cloudsql-proxy-cs\cloudsql-proxy-cs.csproj" />
+    <PackageReference Include="cloudsql-proxy-cs" Version="1.0.2" />
   </ItemGroup>
-
-  <!--<ItemGroup>
-    <PackageReference Include="cloudsql-proxy-cs" Version="1.0.1" />
-  </ItemGroup>-->
 
 </Project>

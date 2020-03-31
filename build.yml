@@ -1,0 +1,16 @@
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    name: Build
+    runs-on: golang:1.14.1-buster
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: |
+          cd lib/cloud_sql_proxy
+          . build-linux
