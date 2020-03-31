@@ -17,6 +17,4 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Build Linux
-        run: |
-          cd lib/cloud_sql_proxy
-          . build-linux
+        run: export GOOS=; export GOARCH=; export CGO_ENABLED=; export CXX=; export CC=; go build -buildmode=c-shared -o artifacts/cloud_sql_proxy.so ./lib/cloud_sql_proxy/
