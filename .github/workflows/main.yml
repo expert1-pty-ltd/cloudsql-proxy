@@ -50,13 +50,10 @@ jobs:
       with:
         dotnet-version: 3.1.100
     - name: Build with dotnet
-      run: |
-        dotnet build --configuration Release
+      run: dotnet build --configuration Release
       working-directory: ./examples/cs/cloudsql-proxy-cs
     - name: Copy Package
-      run: |
-        cp ./examples/cs/cloudsql-proxy-cs/bin/Release/*.nupkg ./artifacts
-      run: |
+      run: cp ./examples/cs/cloudsql-proxy-cs/bin/Release/*.nupkg ./artifacts
     - name: Upload artifacts
       uses: actions/upload-artifact@master
       with:
