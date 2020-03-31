@@ -46,6 +46,7 @@ This has been developed using Debian WSL in Windows 10.
 #### Setup environment
 
 ```
+sudo apt-get update -y
 sudo apt-get install -y --no-install-recommends g++ gcc libc6-dev make pkg-config
 sudo rm -rf /var/lib/apt/lists/*
 GOLANG_VERSION=1.14.1
@@ -53,12 +54,12 @@ dpkgArch="$(dpkg --print-architecture)";
 goRelArch='linux-amd64';
 goRelSha256='2f49eb17ce8b48c680cdb166ffd7389702c0dec6effa090c324804a5cac8a7f8';
 url="https://golang.org/dl/go${GOLANG_VERSION}.${goRelArch}.tar.gz";
+sudo apt-get install wget -y
 sudo wget -O go.tgz "$url";
 sudo tar -C /usr/local -xzf go.tgz;
-sudo apt-get update
-sudo apt-get install wget
-sudo apt-get install gcc-multilib
-sudo apt-get install gcc-mingw-w64
+sudo apt-get update -y
+sudo apt-get install -y gcc-multilib
+sudo apt-get install -y gcc-mingw-w64
 export GOPATH=/go
 export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"

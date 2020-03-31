@@ -9,10 +9,14 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: "1.14.1"
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-
-      - name: build linux binary
-        uses: ./.github/actions/build-go
-        id: build-go
+      - name: Build Linux
+        run: |
+          cd lib/cloud_sql_proxy
+          . build-linux
