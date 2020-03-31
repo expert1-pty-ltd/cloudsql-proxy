@@ -54,6 +54,7 @@ jobs:
       working-directory: ./examples/cs/cloudsql-proxy-cs
     - name: Copy Package
       run: |
+        mkdir artifacts
         cp -v ./examples/cs/cloudsql-proxy-cs/bin/Release/*.nupkg ./artifacts/
         ls ./artifacts
     - name: Upload artifacts
