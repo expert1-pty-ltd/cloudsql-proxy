@@ -14,6 +14,5 @@ jobs:
         uses: actions/checkout@v2
 
       - name: build linux binary
-        run: |
-          cd lib/cloud_sql_proxy
-          . build-linux
+        uses: ./
+        id: build-go

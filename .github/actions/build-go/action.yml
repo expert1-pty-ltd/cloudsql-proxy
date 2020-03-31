@@ -1,0 +1,6 @@
+# action.yml
+name: "Build Go"
+description: "Build go user docker"
+runs:
+  using: "docker"
+  image: "Dockerfile"
