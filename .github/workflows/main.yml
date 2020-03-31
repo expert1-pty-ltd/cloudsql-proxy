@@ -37,19 +37,13 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - name: Install unzip
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install unzip
     - uses: actions/checkout@master
     - name: Download Artifacts
       uses: actions/download-artifact@master
       with:
         name: cloud_sql_proxy_libs
         path: examples/cs/cloudsql-proxy-cs/runtimes
-    - name: Unzip Artifacts
-      run: |
-        unzip examples/cs/cloudsql-proxy-cs/runtimes/cloud_sql_proxy_libs
+    - run: ls examples/cs/cloudsql-proxy-cs/runtimes
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
