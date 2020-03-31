@@ -52,7 +52,7 @@ namespace cmd
                         {
                             case "stop":
                                 cts.Cancel();
-                                cloudsql_proxy_cs.Proxy.StopProxy();
+                                new cloudsql_proxy_cs.Proxy().StopProxy();
                                 break;
                             default:
                                 NonBlockingConsole.WriteLine("Type :quit to exit");

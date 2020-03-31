@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net46</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;netstandard2.0;net46</TargetFrameworks>
+    <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -18,9 +19,9 @@
 
   <PropertyGroup>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
-    <AssemblyVersion>1.0.1.0</AssemblyVersion>
-    <FileVersion>1.0.1.0</FileVersion>
-    <Version>1.0.1</Version>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,11 +29,23 @@
   </ItemGroup>
   
   <ItemGroup>
-    <None Include="$(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll">
+    <None Include="$(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy_x64.dll">
       <Pack>True</Pack>
       <PackagePath>runtimes\win-x64\native</PackagePath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
+    </None>
+    <None Include="$(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy_x86.dll">
+      <Pack>True</Pack>
+      <PackagePath>runtimes\win-x86\native</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </None>
+    <None Include="$(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.so">
+        <Pack>True</Pack>
+        <PackagePath>runtimes\linux-x64\native</PackagePath>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <Visible>false</Visible>
     </None>
     <None Include="..\..\..\LICENSE">
       <Pack>True</Pack>
@@ -40,12 +53,11 @@
     </None>
   </ItemGroup>
   
-  <Target Name="BuildCloudSQLProxyDLL" BeforeTargets="DispatchToInnerBuilds">
+  <!--<Target Name="BuildCloudSQLProxyDLL" BeforeTargets="DispatchToInnerBuilds">
     <Message Importance="High" Text="Building GO Cloud SQL Proxy Library (Windows) $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" />
     <Exec Command="(set CGO_ENABLED=1) &amp;&amp; (set GOARCH=amd64) &amp;&amp; (set GOOS=windows) &amp;&amp; go build -buildmode=c-shared -o $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.dll" WorkingDirectory="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\" />
-    <!--
+    
     <Message Importance="High" Text="Building GO Cloud SQL Proxy Library (Linux) $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.so" />
     <Exec Command="(set CGO_ENABLED=1) &amp;&amp; (set GOARCH=amd64) &amp;&amp; (set GOOS=linux) &amp;&amp; go build -buildmode=c-shared -o $(MSBuildProjectDirectory)\runtimes\cloud_sql_proxy.so" WorkingDirectory="$(ProjectDir)..\..\..\lib\cloud_sql_proxy\" />
-    -->
-  </Target>
+  </Target>-->
 </Project>

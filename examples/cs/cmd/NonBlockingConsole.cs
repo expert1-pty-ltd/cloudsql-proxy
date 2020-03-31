@@ -21,27 +21,44 @@ namespace cmd
 {
     public static class NonBlockingConsole
     {
-        private static BlockingCollection<KeyValuePair<ConsoleColor, string>> m_Queue = new BlockingCollection<KeyValuePair<ConsoleColor, string>>();
+        //private static BlockingCollection<KeyValuePair<ConsoleColor, string>> m_Queue = new BlockingCollection<KeyValuePair<ConsoleColor, string>>();
 
-        static NonBlockingConsole()
+        //static NonBlockingConsole()
+        //{
+        //    var thread = new Thread(
+        //      () =>
+        //      {
+        //          while (true)
+        //          {
+        //              var item = m_Queue.Take();
+        //              var currentColour = Console.ForegroundColor;
+        //              if (item.Key != ConsoleColor.White)
+        //              {
+        //                  Console.ForegroundColor = item.Key;
+        //              }
+        //              Console.WriteLine(item.Value);
+        //              Console.ForegroundColor = currentColour;
+        //          }
+        //      });
+        //    thread.IsBackground = true;
+        //    thread.Start();
+        //}
+
+            /// <summary>
+            /// Having issues with this library on linux - so this is going to now be a standard console
+            /// </summary>
+            private static class m_Queue
         {
-            var thread = new Thread(
-              () =>
-              {
-                  while (true)
-                  {
-                      var item = m_Queue.Take();
-                      var currentColour = Console.ForegroundColor;
-                      if (item.Key != ConsoleColor.White)
-                      {
-                          Console.ForegroundColor = item.Key;
-                      }
-                      Console.WriteLine(item.Value);
-                      Console.ForegroundColor = currentColour;
-                  }
-              });
-            thread.IsBackground = true;
-            thread.Start();
+            public static void Add(KeyValuePair<ConsoleColor, string> item)
+            {
+                var currentColour = Console.ForegroundColor;
+                if (item.Key != ConsoleColor.White)
+                {
+                    Console.ForegroundColor = item.Key;
+                }
+                Console.WriteLine(item.Value);
+                Console.ForegroundColor = currentColour;
+            }
         }
 
         public static void WriteLine(string value)

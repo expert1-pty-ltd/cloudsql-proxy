@@ -10,6 +10,7 @@ tests/cloud_sql_proxy
 # ignore outputs
 *.exe
 *.dll
+*.so
 *.h
 
 ## Ignore Visual Studio temporary files, build results, and

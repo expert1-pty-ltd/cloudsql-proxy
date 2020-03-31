@@ -4,7 +4,7 @@ The Cloud SQL Proxy .NET Wrapper allows the usage, management, and packaging of 
 inside a .Net application. This may be useful for an application which is installed on a workstation by an inexperienced user, such as a winform/wpf/windows service.
 
 To build from source, ensure you have [go installed](https://golang.org/doc/install)
-,set [GOPATH](https://github.com/golang/go/wiki/GOPATH), and 
+,set [GOPATH](https://github.com/golang/go/wiki/GOPATH), and
 [Installed a C Compiler](http://mingw-w64.org/doku.php/download/mingw-builds)
 
 ## To use from third party applications
@@ -35,4 +35,27 @@ public extern static void StartProxy(byte[] instances, byte[] tokenFile);
 
 [DllImport("cloud_sql_proxy.dll", CharSet = CharSet.Unicode. CallingConvention = CallingConvention.StdCall)]
 public extern static void StopProxy();
+```
+
+## Building cloud_sql_proxy binaries
+
+Building dotnet core app in linux
+
+### Register Microsoft key and feed
+
+```
+sudo apt-get update
+sudo apt-get install gpg
+wget -O- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.asc.gpg
+sudo mv microsoft.asc.gpg /etc/apt/trusted.gpg.d/
+wget https://packages.microsoft.com/config/debian/10/prod.list
+sudo mv prod.list /etc/apt/sources.list.d/microsoft-prod.list
+sudo chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg
+sudo chown root:root /etc/apt/sources.list.d/microsoft-prod.list
+```
+
+```
+sudo apt-get update
+sudo apt-get install apt-transport-https
+sudo apt-get install dotnet-sdk-3.1
 ```

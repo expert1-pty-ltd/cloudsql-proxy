@@ -5,22 +5,42 @@ VisualStudioVersion = 16.0.29905.134
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cloudsql-proxy-cs", "cloudsql-proxy-cs\cloudsql-proxy-cs.csproj", "{B73F1AFF-983C-49E3-B861-78C1A383E601}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cmd", "cmd\cmd.csproj", "{3A46AA99-19DE-4E40-8D63-1575D033290A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cmd", "cmd\cmd.csproj", "{3A46AA99-19DE-4E40-8D63-1575D033290A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|x64.ActiveCfg = Debug|x64
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|x64.Build.0 = Debug|x64
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|x86.ActiveCfg = Debug|x86
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Debug|x86.Build.0 = Debug|x86
 		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|x64.ActiveCfg = Release|x64
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|x64.Build.0 = Release|x64
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|x86.ActiveCfg = Release|x86
+		{B73F1AFF-983C-49E3-B861-78C1A383E601}.Release|x86.Build.0 = Release|x86
 		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|x64.ActiveCfg = Debug|x64
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|x64.Build.0 = Debug|x64
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|x86.ActiveCfg = Debug|x86
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Debug|x86.Build.0 = Debug|x86
 		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|x64.ActiveCfg = Release|x64
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|x64.Build.0 = Release|x64
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|x86.ActiveCfg = Release|x86
+		{3A46AA99-19DE-4E40-8D63-1575D033290A}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

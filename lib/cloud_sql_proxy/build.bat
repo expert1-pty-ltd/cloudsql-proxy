@@ -1,1 +1,0 @@
-go build -buildmode=c-shared -o cloud_sql_proxy.dll
