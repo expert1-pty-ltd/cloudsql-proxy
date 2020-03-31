@@ -50,6 +50,7 @@ jobs:
         dotnet-version: 3.1.100
     - name: Build with dotnet
       run: |
+        cd examples/cs/cloudsql-proxy-cs
         dotnet build --configuration Release
         cp *.nupkg ./artifacts
     - name: Upload artifacts
