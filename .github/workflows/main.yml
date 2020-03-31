@@ -38,9 +38,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install unzip
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install unzip
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install unzip
     - uses: actions/checkout@master
     - name: Download Artifacts
       uses: actions/download-artifact@master
