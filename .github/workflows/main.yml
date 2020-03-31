@@ -13,11 +13,20 @@ jobs:
         uses: actions/setup-go@master
         with:
           go-version: '1.14.1'
+      - name: Install mingw
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gcc-multilib
+          sudo apt-get install -y gcc-mingw-w64
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Check out code into the Go module directory
         uses: actions/checkout@master
       - name: Build Linux
         run: export GOOS=; export GOARCH=; export CGO_ENABLED=; export CXX=; export CC=; go build -buildmode=c-shared -o ./artifacts/cloud_sql_proxy.so ./lib/cloud_sql_proxy/
+      - name: Build Windows x64
+        run: export GOOS=windows; export GOARCH=amd64; export CGO_ENABLED=1; export CXX=x86_64-w64-mingw32-g++; export CC=x86_64-w64-mingw32-gcc; go build -buildmode=c-shared -o ./artifacts/cloud_sql_proxy_x64.dll ./lib/cloud_sql_proxy/
+      - name: Build Windows x86
+        run: export GOOS=windows; export GOARCH=386; export CGO_ENABLED=1; export CXX=x86_64-w64-mingw32-g++; export CC=x86_64-w64-mingw32-gcc; go build -buildmode=c-shared -o ./artifacts/cloud_sql_proxy_x86.dll ./lib/cloud_sql_proxy/
       - name: Upload artifacts
         uses: actions/upload-artifact@master
         with:
