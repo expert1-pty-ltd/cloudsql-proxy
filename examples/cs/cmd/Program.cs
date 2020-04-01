@@ -84,7 +84,7 @@ namespace cmd
                     {
                         NonBlockingConsole.WriteSuccess("Test Passed");
                     }
-                    proxy.StartProxy(instance, tokenFile);
+                    proxy.StartProxyWithCredentialFile(instance, tokenFile);
                 }
             }
             else

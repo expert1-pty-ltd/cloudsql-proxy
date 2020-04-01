@@ -86,6 +86,7 @@ var (
 	// Settings for authentication.
 	token = ""
 	tokenFile = ""
+	tokenJson = ""
 	ipAddressTypes = "PUBLIC,PRIVATE"
 
 	// Setting to choose what API to connect to
@@ -135,7 +136,7 @@ func checkFlags(onGCE bool) error {
 		return nil
 	}
 
-	if token != "" || tokenFile != "" || os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
+	if token != "" || tokenFile != "" || tokenJson != "" || os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
 		return nil
 	}
 
@@ -185,8 +186,26 @@ func authenticatedClientFromPath(ctx context.Context, f string) (*http.Client, e
 	return oauth2.NewClient(ctx, cred.TokenSource), nil
 }
 
+func authenticatedClientFromJson(ctx context.Context, json string) (*http.Client, error) {
+	all := []byte(json);
+	// First try and load this as a service account config, which allows us to see the service account email:
+	if cfg, err := goauth.JWTConfigFromJSON(all, proxy.SQLScope); err == nil {
+		logging.Infof("using credential json for authentication; email=%s", cfg.Email)
+		return cfg.Client(ctx), nil
+	}
+
+	cred, err := goauth.CredentialsFromJSON(ctx, all, proxy.SQLScope)
+	if err != nil {
+		return nil, fmt.Errorf("invalid json: %v", err)
+	}
+	logging.Infof("using credential json for authentication")
+	return oauth2.NewClient(ctx, cred.TokenSource), nil
+}
+
 func authenticatedClient(ctx context.Context) (*http.Client, error) {
-	if tokenFile != "" {
+	if tokenJson != "" {
+		return authenticatedClientFromJson(ctx, tokenJson)
+	} else if tokenFile != "" {
 		return authenticatedClientFromPath(ctx, tokenFile)
 	} else if tok := token; tok != "" {
 		src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: tok})
@@ -283,10 +302,20 @@ func Echo(message *C.char)(*C.char) {
 	return C.CString(fmt.Sprintf("From DLL: %s", C.GoString(message)))
 }
 
-//export StartProxy
-func StartProxy(_instances *C.char, _tokenFile *C.char) {
+//export StartProxyWithCredentialFile
+func StartProxyWithCredentialFile(_instances *C.char, _tokenFile *C.char) {
+	StartProxy(_instances, _tokenFile, C.CString(""));
+}
+
+//export StartProxyWithCredentialJson
+func StartProxyWithCredentialJson(_instances *C.char, _tokenJson *C.char) {
+	StartProxy(_instances, C.CString(""), _tokenJson);
+}
+
+func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	instances = C.GoString(_instances)
 	tokenFile = C.GoString(_tokenFile)
+	tokenJson = C.GoString(_tokenJson)
 
 	if version {
 		fmt.Println("Cloud SQL Proxy:", versionString)

@@ -26,8 +26,12 @@ namespace cloudsql_proxy_cs
         private extern static IntPtr EchoLinux(byte[] message);
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxy")]
-        private extern static void StartProxyLinux(byte[] instances, byte[] tokenFile);
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
+        private extern static void StartProxyWithCredentialFileLinux(byte[] instances, byte[] tokenFile);
+
+        [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
+        private extern static void StartProxyWithCredentialJsonLinux(byte[] instances, byte[] tokenJson);
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
@@ -40,8 +44,12 @@ namespace cloudsql_proxy_cs
         private extern static IntPtr Echox64(byte[] message);
 
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxy")]
-        private extern static void StartProxyx64(byte[] instances, byte[] tokenFile);
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
+        private extern static void StartProxyWithCredentialFilex64(byte[] instances, byte[] tokenFile);
+
+        [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
+        private extern static void StartProxyWithCredentialJsonx64(byte[] instances, byte[] tokenJson);
 
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
@@ -54,8 +62,12 @@ namespace cloudsql_proxy_cs
         private extern static IntPtr Echox86(byte[] message);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxy")]
-        private extern static void StartProxyx86(byte[] instances, byte[] tokenFile);
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
+        private extern static void StartProxyWithCredentialFilex86(byte[] instances, byte[] tokenFile);
+
+        [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
+        private extern static void StartProxyWithCredentialJsonx86(byte[] instances, byte[] tokenJson);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
@@ -106,18 +118,36 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        public void StartProxy(string instances, string tokenFile)
+        public void StartProxyWithCredentialFile(string instances, string tokenFile)
         {
             switch (Platform)
             {
                 case "linux-64":
-                    StartProxyLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
+                    StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
                     break;
                 case "win-64":
-                    StartProxyx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
+                    StartProxyWithCredentialFilex64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
                     break;
                 case "win-32":
-                    StartProxyx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
+                    StartProxyWithCredentialFilex86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
+                    break;
+                default:
+                    throw new Exception("Invalid platform");
+            }
+        }
+
+        public void StartProxyWithCredentialJson(string instances, string tokenJson)
+        {
+            switch (Platform)
+            {
+                case "linux-64":
+                    StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson));
+                    break;
+                case "win-64":
+                    StartProxyWithCredentialJsonx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson));
+                    break;
+                case "win-32":
+                    StartProxyWithCredentialJsonx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson));
                     break;
                 default:
                     throw new Exception("Invalid platform");
