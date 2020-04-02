@@ -72,8 +72,6 @@ namespace cmd
 
                 NonBlockingConsole.WriteDebug("Shutting down thread");
                 NonBlockingConsole.WriteDebug("Good bye");
-
-                Environment.Exit(0);
             }
         }
     }

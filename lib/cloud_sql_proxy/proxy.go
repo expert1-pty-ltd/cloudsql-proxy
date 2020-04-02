@@ -38,18 +38,22 @@ import (
 	sqladmin "google.golang.org/api/sqladmin/v1beta4"
 )
 
+// expose this globally so we can shut it down later - this is the
+// channel that stops the program from ever exiting
+var connectionChannel chan proxy.Conn
+
 // WatchInstances handles the lifecycle of local sockets used for proxying
 // local connections.  Values received from the updates channel are
 // interpretted as a comma-separated list of instances.  The set of sockets in
 // 'dir' is the union of 'instances' and the most recent list from 'updates'.
 func WatchInstances(ctx context.Context, dir string, cfgs []instanceConfig, updates <-chan string, static map[string]net.Listener, cl *http.Client) (<-chan proxy.Conn, error) {
-	ch := make(chan proxy.Conn, 1)
+	connectionChannel = make(chan proxy.Conn, 1)
 
 	// Instances specified statically (e.g. as flags to the binary) will always
 	// be available. They are ignored if also returned by the GCE metadata since
 	// the socket will already be open.
 	for _, v := range cfgs {
-		l, err := listenInstance(ctx, ch, v)
+		l, err := listenInstance(ctx, connectionChannel, v)
 		if err != nil {
 			return nil, err
 		}
@@ -57,9 +61,9 @@ func WatchInstances(ctx context.Context, dir string, cfgs []instanceConfig, upda
 	}
 
 	if updates != nil {
-		go watchInstancesLoop(ctx, dir, ch, updates, static, cl)
+		go watchInstancesLoop(ctx, dir, connectionChannel, updates, static, cl)
 	}
-	return ch, nil
+	return connectionChannel, nil
 }
 
 func watchInstancesLoop(ctx context.Context, dir string, dst chan<- proxy.Conn, updates <-chan string, static map[string]net.Listener, cl *http.Client) {

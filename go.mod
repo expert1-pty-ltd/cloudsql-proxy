@@ -1,11 +1,11 @@
-module cloudsql-proxy-wrapper
+module cloudsql-proxy-cs
 
 go 1.12
 
 require (
-	github.com/GoogleCloudPlatform/cloudsql-proxy v0.0.0-20200325185443-f6b3391c52cf
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
 	cloud.google.com/go v0.50.0
+	github.com/GoogleCloudPlatform/cloudsql-proxy v0.0.0-20200325185443-f6b3391c52cf
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/lib/pq v1.3.0

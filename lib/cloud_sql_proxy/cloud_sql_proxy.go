@@ -512,7 +512,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		return
 	}()
 
-	proxyClient.Run(connSrc)
+	proxyClient.Run(ctx, connSrc)
 
 	logging.Infof("Main exiting")
 }
@@ -539,6 +539,10 @@ func ShutdownProxy() {
 			logging.Errorf("Error closing %q: %v", v.Addr(), err)
 		}
 	}
+
+	// close connection channel
+	// this is exposed in proxy.go
+	close(connectionChannel)
 
 	SetStatus("disconnected", "")
 }
