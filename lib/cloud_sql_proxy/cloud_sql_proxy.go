@@ -477,11 +477,6 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		SetStatus("disconnected")
 
 		err := proxyClient.Shutdown(termTimeout)
-
-		if err == nil {
-			os.Exit(0)
-		}
-		os.Exit(2)
 	}()
 
 	proxyClient.Run(connSrc)
@@ -492,11 +487,6 @@ func StopProxy() {
 	SetStatus("disconnected")
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
 	err := proxyClient.Shutdown(termTimeout)
-
-	if err == nil {
-		os.Exit(0)
-	}
-	os.Exit(2)
 }
 
 //export GetStatus
