@@ -67,11 +67,13 @@ namespace cmd
                             NonBlockingConsole.WriteLine("Type :quit to exit");
                             break;
                     }
-                    input = Console.ReadLine().ToLower().Trim();
+                        input = Console.ReadLine()?.ToLower()?.Trim();
                 }
 
                 NonBlockingConsole.WriteDebug("Shutting down thread");
                 NonBlockingConsole.WriteDebug("Good bye");
+
+                Environment.Exit(0);
             }
         }
     }

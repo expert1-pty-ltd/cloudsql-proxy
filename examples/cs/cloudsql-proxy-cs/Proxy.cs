@@ -234,7 +234,7 @@ namespace cloudsql_proxy_cs
             }
 
             // wait for proxy to die
-            job.Join(1000);
+            job.Join(500);
         }
 
         private void RunJob()

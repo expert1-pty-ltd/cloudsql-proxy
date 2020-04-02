@@ -34,6 +34,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -109,11 +110,15 @@ const (
 	port = 3307
 )
 
+var ctx context.Context
+
 var defaultTmp = filepath.Join(os.TempDir(), "cloudsql-proxy-tmp")
 
 const defaultVersionString = "NO_VERSION_SET"
 
 var versionString = defaultVersionString
+
+var staticInstances map[string]net.Listener
 
 // userAgentFromVersionString returns an appropriate user agent string for
 // identifying this proxy process, or a blank string if versionString was not
@@ -303,7 +308,10 @@ func gcloudProject() ([]string, error) {
 	return []string{cfg.Configuration.Properties.Core.Project}, nil
 }
 
-func main() {}
+var sigShutdown chan int = make(chan int, 1)
+
+func main() {
+}
 
 //export Echo
 func Echo(message *C.char)(*C.char) {
@@ -389,7 +397,9 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx = context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
 	client, err := authenticatedClient(ctx)
 	if err != nil {
 		SetStatus("error", fmt.Sprintf("%v", err))
@@ -414,6 +424,9 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	// We only need to store connections in a ConnSet if FUSE is used; otherwise
 	// it is not efficient to do so.
 	var connset *proxy.ConnSet
+
+	// initialise this here
+	staticInstances = make(map[string]net.Listener, len(cfgs))
 
 	// Initialize a source of new connections to Cloud SQL instances.
 	var connSrc <-chan proxy.Conn
@@ -448,7 +461,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 			}()
 		}
 
-		c, err := WatchInstances(dir, cfgs, updates, client)
+		c, err := WatchInstances(ctx, dir, cfgs, updates, staticInstances, client)
 		if err != nil {
 			SetStatus("error", fmt.Sprintf("%v", err))
 			logging.Errorf("%v", err)
@@ -479,24 +492,55 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+	defer func() {
+		signal.Stop(signals)
+		cancel()
+	}()
 
 	go func() {
-		<-signals
-		logging.Infof("Received TERM signal. Waiting up to %s before terminating.", termTimeout)
-		SetStatus("disconnected", "")
-
-		proxyClient.Shutdown(termTimeout)
-		return;
+		select {
+		case <-signals:
+			logging.Infof("Received TERM signal")
+			cancel()
+		case <- sigShutdown:
+			logging.Infof("shutdown signal sent")
+			cancel()
+		case <-ctx.Done():
+			logging.Infof("context done")
+		}
+		ShutdownProxy()
+		return
 	}()
 
 	proxyClient.Run(connSrc)
+
+	logging.Infof("Main exiting")
 }
 
 //export StopProxy
 func StopProxy() {
-	SetStatus("disconnected", "")
+	// send shutdown
+	logging.Infof("Sending shutdown")
+	sigShutdown <- 1
+}
+
+func ShutdownProxy() {
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
+
+	// shutdown connections
+	logging.Infof("Close connections")
+	proxyClient.Conns.Close()
 	proxyClient.Shutdown(termTimeout)
+
+	// shutdown listeners
+	logging.Infof("Close listeners")
+	for _, v := range staticInstances {
+		if err := v.Close(); err != nil {
+			logging.Errorf("Error closing %q: %v", v.Addr(), err)
+		}
+	}
+
+	SetStatus("disconnected", "")
 }
 
 //export GetStatus
