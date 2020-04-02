@@ -476,7 +476,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		logging.Infof("Received TERM signal. Waiting up to %s before terminating.", termTimeout)
 		SetStatus("disconnected")
 
-		err := proxyClient.Shutdown(termTimeout)
+		proxyClient.Shutdown(termTimeout)
 	}()
 
 	proxyClient.Run(connSrc)
@@ -486,7 +486,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 func StopProxy() {
 	SetStatus("disconnected")
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
-	err := proxyClient.Shutdown(termTimeout)
+	proxyClient.Shutdown(termTimeout)
 }
 
 //export GetStatus
