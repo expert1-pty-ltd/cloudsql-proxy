@@ -52,9 +52,9 @@ namespace cloudsql_proxy_cs
 
         private Thread job;
 
-        public EventHandler<Status> OnStatusChanged { get; set; }
-        public EventHandler OnConnected { get; set; }
-        public EventHandler OnDisconnected { get; set; }
+        public event EventHandler<Status> OnStatusChanged;
+        public event EventHandler OnConnected;
+        public event EventHandler OnDisconnected;
 
         /// <summary>
         /// Get Status of Proxy
