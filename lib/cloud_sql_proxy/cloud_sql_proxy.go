@@ -512,7 +512,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		return
 	}()
 
-	proxyClient.Run(ctx, connSrc)
+	proxyClient.Run(connSrc)
 
 	logging.Infof("Main exiting")
 }
