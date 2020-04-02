@@ -59,7 +59,10 @@ import (
 	sqladmin "google.golang.org/api/sqladmin/v1beta4"
 )
 
+// #include "extern.h"
 import "C"
+
+// we need to include the c code from seperate files or cgo complains when compiling
 
 var (
 	version = false
@@ -92,7 +95,12 @@ var (
 	// Setting to choose what API to connect to
 	host = ""
 
+	// Track connection status
+	status = "disconnected"
+
 	proxyClient proxy.Client
+
+	g_cb C.callbackFunc
 )
 
 const (
@@ -313,6 +321,8 @@ func StartProxyWithCredentialJson(_instances *C.char, _tokenJson *C.char) {
 }
 
 func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
+	SetStatus("connecting")
+
 	instances = C.GoString(_instances)
 	tokenFile = C.GoString(_tokenFile)
 	tokenJson = C.GoString(_tokenJson)
@@ -342,6 +352,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	if host != "" && !strings.HasSuffix(host, "/") {
 		logging.Errorf("Flag host should always end with /")
 		flag.PrintDefaults()
+		SetStatus("disconnected")
 		return
 	}
 
@@ -361,30 +372,36 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		if err == nil {
 			logging.Infof("Using gcloud's active project: %v", projList)
 		} else if gErr, ok := err.(*util.GcloudError); ok && gErr.Status == util.GcloudNotFound {
+			SetStatus("disconnected")
 			log.Fatalf("gcloud is not in the path and -instances and -projects are empty")
 		} else {
+			SetStatus("disconnected")
 			log.Fatalf("unable to retrieve the active gcloud project and -instances and -projects are empty: %v", err)
 		}
 	}
 
 	onGCE := metadata.OnGCE()
 	if err := checkFlags(onGCE); err != nil {
+		SetStatus("disconnected")
 		log.Fatal(err)
 	}
 
 	ctx := context.Background()
 	client, err := authenticatedClient(ctx)
 	if err != nil {
+		SetStatus("disconnected")
 		log.Fatal(err)
 	}
 
 	ins, err := listInstances(ctx, client, projList)
 	if err != nil {
+		SetStatus("disconnected")
 		log.Fatal(err)
 	}
 	instList = append(instList, ins...)
 	cfgs, err := CreateInstanceConfigs(dir, useFuse, instList, instanceSrc, client)
 	if err != nil {
+		SetStatus("disconnected")
 		log.Fatal(err)
 	}
 
@@ -398,6 +415,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		connset = proxy.NewConnSet()
 		c, fuse, err := fuse.NewConnSrc(dir, fuseTmp, connset)
 		if err != nil {
+			SetStatus("disconnected")
 			log.Fatalf("Could not start fuse directory at %q: %v", dir, err)
 		}
 		connSrc = c
@@ -414,6 +432,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 						return nil
 					})
 					if err != nil {
+						SetStatus("disconnected")
 						logging.Errorf("Error on receiving new instances from metadata: %v", err)
 					}
 					time.Sleep(5 * time.Second)
@@ -423,6 +442,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 
 		c, err := WatchInstances(dir, cfgs, updates, client)
 		if err != nil {
+			SetStatus("disconnected")
 			log.Fatal(err)
 		}
 		connSrc = c
@@ -433,6 +453,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		refreshCfgThrottle = minimumRefreshCfgThrottle
 	}
 	logging.Infof("Ready for new connections")
+	SetStatus("connected")
 
 	proxyClient := &proxy.Client{
 		Port:           port,
@@ -453,6 +474,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	go func() {
 		<-signals
 		logging.Infof("Received TERM signal. Waiting up to %s before terminating.", termTimeout)
+		SetStatus("disconnected")
 
 		err := proxyClient.Shutdown(termTimeout)
 
@@ -467,6 +489,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 
 //export StopProxy
 func StopProxy() {
+	SetStatus("disconnected")
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
 	err := proxyClient.Shutdown(termTimeout)
 
@@ -474,4 +497,25 @@ func StopProxy() {
 		os.Exit(0)
 	}
 	os.Exit(2)
+}
+
+//export GetStatus
+func GetStatus()(*C.char)  {
+	return C.CString(status)
+}
+
+//export SetCallback
+func SetCallback(cb C.callbackFunc) {
+	// This function stores the callback function pointer above as a global variable
+	// the function pointer comes from the C# wrapper
+	g_cb = cb
+}
+/*
+* This GO function is used to set the state of the proxy connection.
+* It calls invokeFunctionPointer from extern.c, it passes it the stored function pointer
+* of the delegate from the C# wrapper
+*/
+func SetStatus(s string) {
+	status = s
+	C.invokeFunctionPointer(g_cb, C.CString(s));
 }

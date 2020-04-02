@@ -19,6 +19,8 @@ namespace cmd
 {
     class Program
     {
+        private static bool exit = false;
+
         static void Main(string[] args)
         {
             var instance = args.Length == 1 ? args[0] : "";
@@ -38,59 +40,40 @@ namespace cmd
             }
             else
             {
-                // Create the token source.
-                using (var cts = new CancellationTokenSource())
+                var proxy = new cloudsql_proxy_cs.Proxy();
+
+                proxy.OnStatusChanged += (object sender, cloudsql_proxy_cs.Status status) =>
                 {
-                    // Pass the token to the cancelable operation.
-                    ThreadPool.QueueUserWorkItem(new WaitCallback(DoWork), new object[] { cts.Token, instance, tokenFile });
+                    NonBlockingConsole.WriteLine($"Status from Event: {status}");
+                };
 
-                    NonBlockingConsole.WriteLine("Type :quit to exit");
-                    var input = Console.ReadLine().ToLower().Trim();
-                    while (input != ":quit" && !cts.IsCancellationRequested)
-                    {
-                        switch (input)
-                        {
-                            case "stop":
-                                cts.Cancel();
-                                new cloudsql_proxy_cs.Proxy().StopProxy();
-                                break;
-                            default:
-                                NonBlockingConsole.WriteLine("Type :quit to exit");
-                                break;
-                        }
-                        input = Console.ReadLine().ToLower().Trim();
-                    }
-
-                    NonBlockingConsole.WriteDebug("Shutting down thread");
-                    cts.Cancel();
-                    NonBlockingConsole.WriteDebug("Good bye");
-                }
-            }
-        }
-
-        static void DoWork(object obj)
-        {
-            CancellationToken token = (CancellationToken)((object[])obj)[0];
-            string instance = (string)((object[])obj)[1];
-            string tokenFile = (string)((object[])obj)[2];
-
-            if (!token.IsCancellationRequested)
-            {
-                using (var proxy = new cloudsql_proxy_cs.Proxy())
+                NonBlockingConsole.WriteLine("Type :quit to exit");
+                var input = Console.ReadLine().ToLower().Trim();
+                while (input != ":quit" || !exit)
                 {
-                    NonBlockingConsole.WriteLine("Testing connection to CloudSQL Proxy Library");
-                    var ret = proxy.Echo("test");
-                    if (ret == "From DLL: test")
+                    switch (input)
                     {
-                        NonBlockingConsole.WriteSuccess("Test Passed");
+                        case "start":
+                            proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile);
+                            break;
+                        case "status":
+                            NonBlockingConsole.WriteLine($"Status: {proxy.Status}");
+                            break;
+                        case "stop":
+                            proxy.StopProxy();
+                            exit = true;
+                            break;
+                        default:
+                            NonBlockingConsole.WriteLine("Type :quit to exit");
+                            break;
                     }
-                    proxy.StartProxyWithCredentialFile(instance, tokenFile);
+                    input = Console.ReadLine().ToLower().Trim();
                 }
-            }
-            else
-            {
-                NonBlockingConsole.WriteLine("Stopping thread");
+
+                NonBlockingConsole.WriteDebug("Shutting down thread");
+                NonBlockingConsole.WriteDebug("Good bye");
             }
         }
     }
 }
+
