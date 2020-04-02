@@ -18,9 +18,18 @@ using System.Text;
 
 namespace cloudsql_proxy_cs
 {
+    /// <summary>
+    /// Proxy Authentication Method
+    /// </summary>
     public enum AuthenticationMethod
     {
+        /// <summary>
+        /// Path to google credentials json file
+        /// </summary>
         CredentialFile,
+        /// <summary>
+        /// Google credentials json file as a string
+        /// </summary>
         JSON
     }
 }

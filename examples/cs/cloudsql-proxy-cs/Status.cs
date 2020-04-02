@@ -14,10 +14,22 @@
 
 namespace cloudsql_proxy_cs
 {
+    /// <summary>
+    /// Proxy Connection Status
+    /// </summary>
     public enum Status
     {
+        /// <summary>
+        /// Connecting
+        /// </summary>
         Connecting,
+        /// <summary>
+        /// Connected
+        /// </summary>
         Connected,
+        /// <summary>
+        /// Disconnected
+        /// </summary>
         Disconnected
     }
 }
