@@ -55,6 +55,7 @@ namespace cloudsql_proxy_cs
         public event EventHandler<Status> OnStatusChanged;
         public event EventHandler OnConnected;
         public event EventHandler OnDisconnected;
+        public event EventHandler<string> OnError;
 
         /// <summary>
         /// Get Status of Proxy
@@ -85,6 +86,8 @@ namespace cloudsql_proxy_cs
                         return Status.Connecting;
                     case "connected":
                         return Status.Connected;
+                    case "error":
+                        return Status.Error;
                     default:
                         return Status.Disconnected;
                 }
@@ -164,10 +167,12 @@ namespace cloudsql_proxy_cs
         /// Implements SetStatus delegate which is passed into SetCallback on the go library interface
         /// </summary>
         /// <param name="status"></param>
-        private void SetStatus(IntPtr status)
+        private void SetStatus(IntPtr status, IntPtr error)
         {
             // decode message from bytes
             var statusStr = Marshal.PtrToStringAnsi(status);
+            var errorStr = Marshal.PtrToStringAnsi(error);
+
             switch (statusStr)
             {
                 case "connecting":
@@ -176,6 +181,10 @@ namespace cloudsql_proxy_cs
                 case "connected":
                     OnStatusChanged?.Invoke(this, Status.Connected);
                     OnConnected?.Invoke(this, null);
+                    break;
+                case "error":
+                    OnStatusChanged?.Invoke(this, Status.Error);
+                    OnError?.Invoke(this, errorStr);
                     break;
                 default:
                     OnStatusChanged?.Invoke(this, Status.Disconnected);

@@ -321,7 +321,7 @@ func StartProxyWithCredentialJson(_instances *C.char, _tokenJson *C.char) {
 }
 
 func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
-	SetStatus("connecting")
+	SetStatus("connecting", "")
 
 	instances = C.GoString(_instances)
 	tokenFile = C.GoString(_tokenFile)
@@ -352,7 +352,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	if host != "" && !strings.HasSuffix(host, "/") {
 		logging.Errorf("Flag host should always end with /")
 		flag.PrintDefaults()
-		SetStatus("disconnected")
+		SetStatus("error", "Flag host should always end with /")
 		return
 	}
 
@@ -372,37 +372,43 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		if err == nil {
 			logging.Infof("Using gcloud's active project: %v", projList)
 		} else if gErr, ok := err.(*util.GcloudError); ok && gErr.Status == util.GcloudNotFound {
-			SetStatus("disconnected")
-			log.Fatalf("gcloud is not in the path and -instances and -projects are empty")
+			SetStatus("error", "gcloud is not in the path and -instances and -projects are empty")
+			logging.Errorf("gcloud is not in the path and -instances and -projects are empty")
+			return
 		} else {
-			SetStatus("disconnected")
-			log.Fatalf("unable to retrieve the active gcloud project and -instances and -projects are empty: %v", err)
+			SetStatus("error", fmt.Sprintf("unable to retrieve the active gcloud project and -instances and -projects are empty: %v", err))
+			logging.Errorf("unable to retrieve the active gcloud project and -instances and -projects are empty: %v", err)
+			return
 		}
 	}
 
 	onGCE := metadata.OnGCE()
 	if err := checkFlags(onGCE); err != nil {
-		SetStatus("disconnected")
-		log.Fatal(err)
+		SetStatus("error", fmt.Sprintf("%v", err))
+		logging.Errorf("%v", err)
+		return
 	}
 
 	ctx := context.Background()
 	client, err := authenticatedClient(ctx)
 	if err != nil {
-		SetStatus("disconnected")
-		log.Fatal(err)
+		SetStatus("error", fmt.Sprintf("%v", err))
+		logging.Errorf("%v", err)
+		return
 	}
 
 	ins, err := listInstances(ctx, client, projList)
 	if err != nil {
-		SetStatus("disconnected")
-		log.Fatal(err)
+		SetStatus("error", fmt.Sprintf("%v", err))
+		logging.Errorf("%v", err)
+		return
 	}
 	instList = append(instList, ins...)
 	cfgs, err := CreateInstanceConfigs(dir, useFuse, instList, instanceSrc, client)
 	if err != nil {
-		SetStatus("disconnected")
-		log.Fatal(err)
+		SetStatus("error", fmt.Sprintf("%v", err))
+		logging.Errorf("%v", err)
+		return
 	}
 
 	// We only need to store connections in a ConnSet if FUSE is used; otherwise
@@ -415,8 +421,9 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		connset = proxy.NewConnSet()
 		c, fuse, err := fuse.NewConnSrc(dir, fuseTmp, connset)
 		if err != nil {
-			SetStatus("disconnected")
-			log.Fatalf("Could not start fuse directory at %q: %v", dir, err)
+			SetStatus("error", fmt.Sprintf("Could not start fuse directory at %q: %v", dir, err))
+			logging.Errorf("Could not start fuse directory at %q: %v", dir, err)
+			return;
 		}
 		connSrc = c
 		defer fuse.Close()
@@ -432,8 +439,9 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 						return nil
 					})
 					if err != nil {
-						SetStatus("disconnected")
+						SetStatus("error", fmt.Sprintf("Error on receiving new instances from metadata: %v", err))
 						logging.Errorf("Error on receiving new instances from metadata: %v", err)
+						return
 					}
 					time.Sleep(5 * time.Second)
 				}
@@ -442,8 +450,9 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 
 		c, err := WatchInstances(dir, cfgs, updates, client)
 		if err != nil {
-			SetStatus("disconnected")
-			log.Fatal(err)
+			SetStatus("error", fmt.Sprintf("%v", err))
+			logging.Errorf("%v", err)
+			return
 		}
 		connSrc = c
 	}
@@ -453,7 +462,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		refreshCfgThrottle = minimumRefreshCfgThrottle
 	}
 	logging.Infof("Ready for new connections")
-	SetStatus("connected")
+	SetStatus("connected", "")
 
 	proxyClient := &proxy.Client{
 		Port:           port,
@@ -474,9 +483,10 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	go func() {
 		<-signals
 		logging.Infof("Received TERM signal. Waiting up to %s before terminating.", termTimeout)
-		SetStatus("disconnected")
+		SetStatus("disconnected", "")
 
 		proxyClient.Shutdown(termTimeout)
+		return;
 	}()
 
 	proxyClient.Run(connSrc)
@@ -484,7 +494,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 
 //export StopProxy
 func StopProxy() {
-	SetStatus("disconnected")
+	SetStatus("disconnected", "")
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
 	proxyClient.Shutdown(termTimeout)
 }
@@ -505,7 +515,7 @@ func SetCallback(cb C.callbackFunc) {
 * It calls invokeFunctionPointer from extern.c, it passes it the stored function pointer
 * of the delegate from the C# wrapper
 */
-func SetStatus(s string) {
+func SetStatus(s string, e string) {
 	status = s
-	C.invokeFunctionPointer(g_cb, C.CString(s));
+	C.invokeFunctionPointer(g_cb, C.CString(s), C.CString(e));
 }

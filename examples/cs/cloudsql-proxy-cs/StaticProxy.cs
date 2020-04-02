@@ -25,7 +25,7 @@ namespace cloudsql_proxy_cs
         /// Delegate which is passed to SetCallback on the go library
         /// </summary>
         /// <param name="status"></param>
-        internal delegate void StatusCallback(IntPtr status);
+        internal delegate void StatusCallback(IntPtr status, IntPtr error);
 
         #region "Linux"
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,

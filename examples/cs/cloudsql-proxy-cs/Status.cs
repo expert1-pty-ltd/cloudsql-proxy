@@ -30,6 +30,10 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// Disconnected
         /// </summary>
-        Disconnected
+        Disconnected,
+        /// <summary>
+        /// Error
+        /// </summary>
+        Error
     }
 }
