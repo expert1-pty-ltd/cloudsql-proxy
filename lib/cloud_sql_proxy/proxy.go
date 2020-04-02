@@ -146,33 +146,33 @@ func listenInstance(ctx context.Context, dst chan<- proxy.Conn, cfg instanceConf
 		for {
 			select {
             case <- ctx.Done():
-                return
-			}
-			start := time.Now()
-			c, err := l.Accept()
-			if err != nil {
-				logging.Errorf("Error in accept for %q on %v: %v", cfg, cfg.Address, err)
-				if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
-					d := 10*time.Millisecond - time.Since(start)
-					if d > 0 {
-						time.Sleep(d)
-					}
-					continue
-				}
-				l.Close()
 				return
+			default:
+				start := time.Now()
+				c, err := l.Accept()
+				if err != nil {
+					logging.Errorf("Error in accept for %q on %v: %v", cfg, cfg.Address, err)
+					if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+						d := 10*time.Millisecond - time.Since(start)
+						if d > 0 {
+							time.Sleep(d)
+						}
+						continue
+					}
+					l.Close()
+					return
+				}
+				logging.Verbosef("New connection for %q", cfg.Instance)
+	
+				switch clientConn := c.(type) {
+				case *net.TCPConn:
+					clientConn.SetKeepAlive(true)
+					clientConn.SetKeepAlivePeriod(1 * time.Minute)
+	
+				}
+				dst <- proxy.Conn{cfg.Instance, c}
 			}
-			logging.Verbosef("New connection for %q", cfg.Instance)
-
-			switch clientConn := c.(type) {
-			case *net.TCPConn:
-				clientConn.SetKeepAlive(true)
-				clientConn.SetKeepAlivePeriod(1 * time.Minute)
-
-			}
-			dst <- proxy.Conn{cfg.Instance, c}
 		}
-		logging.Infof("Exit for")
 	}()
 
 	logging.Infof("Listening on %s for %s", cfg.Address, cfg.Instance)
