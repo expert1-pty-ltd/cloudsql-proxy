@@ -13,18 +13,20 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace cloudsql_proxy_cs
 {
+    /// <summary>
+    /// Interface to the CloudSQL proxy Shared Library.
+    /// </summary>
     public static class StaticProxy
     {
         /// <summary>
         /// Delegate which is passed to SetCallback on the go library
         /// </summary>
         /// <param name="status"></param>
+        /// <param name="error"></param>
         internal delegate void StatusCallback(IntPtr status, IntPtr error);
 
         #region "Linux"

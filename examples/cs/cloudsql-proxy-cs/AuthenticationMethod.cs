@@ -12,23 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace cloudsql_proxy_cs
 {
     /// <summary>
-    /// Proxy Authentication Method
+    /// Proxy Authentication Method.
     /// </summary>
     public enum AuthenticationMethod
     {
         /// <summary>
-        /// Path to google credentials json file
+        /// Path to google credentials json file.
         /// </summary>
         CredentialFile,
         /// <summary>
-        /// Google credentials json file as a string
+        /// Google credentials json file as a string.
         /// </summary>
         JSON
     }

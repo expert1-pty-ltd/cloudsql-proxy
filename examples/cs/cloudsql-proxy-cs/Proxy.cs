@@ -19,6 +19,9 @@ using System.Threading;
 
 namespace cloudsql_proxy_cs
 {
+    /// <summary>
+    /// Class used for the management of the Cloud SQL Proxy.
+    /// </summary>
     public class Proxy : IDisposable
     {
         private string Platform
@@ -52,19 +55,35 @@ namespace cloudsql_proxy_cs
 
         private Thread job;
 
+        /// <summary>
+        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
+        /// Can be used to capture the status as it moves through different states.
+        /// </summary>
         public event EventHandler<Status> OnStatusChanged;
+
+        /// <summary>
+        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes to Connected.
+        /// </summary>
         public event EventHandler OnConnected;
+
+        /// <summary>
+        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes to Disconnected.
+        /// </summary>
         public event EventHandler OnDisconnected;
+
+        /// <summary>
+        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes to Error.
+        /// </summary>
         public event EventHandler<string> OnError;
 
         /// <summary>
-        /// Get Status of Proxy
+        /// Gets the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy.
         /// </summary>
         public Status Status
         {
             get
             {
-                var status = "";
+                string status;
                 switch (Platform)
                 {
                     case "linux-64":
@@ -128,14 +147,14 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Default constructor - must start proxy manually
+        /// Default constructor - must start proxy manually.
         /// </summary>
         public Proxy()
         {
         }
 
         /// <summary>
-        /// Contruct and start proxy
+        /// Contruct and start proxy.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance</param>
@@ -146,7 +165,7 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Start the proxy manually
+        /// Start the proxy manually.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance</param>
@@ -164,9 +183,10 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Implements SetStatus delegate which is passed into SetCallback on the go library interface
+        /// Implements SetStatus delegate which is passed into SetCallback on the go library interface.
         /// </summary>
         /// <param name="status"></param>
+        /// <param name="error"></param>
         private void SetStatus(IntPtr status, IntPtr error)
         {
             // decode message from bytes
@@ -194,7 +214,7 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Echo from the go library - test connectivity
+        /// Echo from the go library, used to test the go library connectivity.
         /// </summary>
         /// <param name="message">message to send</param>
         /// <returns></returns>
@@ -214,7 +234,7 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Stop proxy
+        /// Stops the Proxy.
         /// </summary>
         public void StopProxy()
         {
@@ -286,6 +306,7 @@ namespace cloudsql_proxy_cs
             }
         }
 
+        ///<inheritdoc cref="IDisposable"/> 
         public void Dispose()
         {
             // instruct proxy to die
