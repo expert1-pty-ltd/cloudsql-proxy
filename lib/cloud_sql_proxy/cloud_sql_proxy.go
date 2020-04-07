@@ -102,12 +102,12 @@ var (
 	proxyClient proxy.Client
 
 	g_cb C.callbackFunc
+
+	port = 3307
 )
 
 const (
 	minimumRefreshCfgThrottle = time.Second
-
-	port = 3307
 )
 
 var ctx context.Context
@@ -515,6 +515,11 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	proxyClient.Run(connSrc)
 
 	logging.Infof("Main exiting")
+}
+
+//export GetPort
+func GetPort() int {
+	return port
 }
 
 //export StopProxy

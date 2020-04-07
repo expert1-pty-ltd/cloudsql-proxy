@@ -53,6 +53,10 @@ namespace cloudsql_proxy_cs
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "SetCallback")]
         internal extern static IntPtr SetCallbackLinux(StatusCallback cb);
+
+        [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
+                   CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPort")]
+        internal extern static int GetPortLinux();
         #endregion
 
         #region "x64"
@@ -79,6 +83,10 @@ namespace cloudsql_proxy_cs
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "SetCallback")]
         internal extern static IntPtr SetCallbackx64(StatusCallback cb);
+
+        [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
+                   CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPort")]
+        internal extern static int GetPortx64();
         #endregion
 
         #region "x86"
@@ -105,6 +113,10 @@ namespace cloudsql_proxy_cs
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "SetCallback")]
         internal extern static IntPtr SetCallbackx86(StatusCallback cb);
+
+        [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
+                   CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPort")]
+        internal extern static int GetPortx86();
         #endregion
     }
 }

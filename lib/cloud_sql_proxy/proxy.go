@@ -29,6 +29,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"strconv"
 
 	"golang.org/x/net/context"
 	"github.com/GoogleCloudPlatform/cloudsql-proxy/logging"
@@ -179,7 +180,9 @@ func listenInstance(ctx context.Context, dst chan<- proxy.Conn, cfg instanceConf
 		}
 	}()
 
-	logging.Infof("Listening on %s for %s", cfg.Address, cfg.Instance)
+	port, _ = strconv.Atoi(strings.Split(l.Addr().String(), ":")[1]);
+
+	logging.Infof("Listening on %s for %s", l.Addr(), cfg.Instance)
 	return l, nil
 }
 

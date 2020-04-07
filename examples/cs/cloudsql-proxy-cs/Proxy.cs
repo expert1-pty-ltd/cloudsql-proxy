@@ -157,7 +157,7 @@ namespace cloudsql_proxy_cs
         /// Contruct and start proxy.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
-        /// <param name="instance">instance</param>
+        /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
         public Proxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
         {
@@ -168,7 +168,7 @@ namespace cloudsql_proxy_cs
         /// Start the proxy manually.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
-        /// <param name="instance">instance</param>
+        /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
         public void StartProxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
         {
@@ -228,6 +228,25 @@ namespace cloudsql_proxy_cs
                     return Marshal.PtrToStringAnsi(StaticProxy.Echox64((Encoding.UTF8.GetBytes(message))));
                 case "win-32":
                     return Marshal.PtrToStringAnsi(StaticProxy.Echox86((Encoding.UTF8.GetBytes(message))));
+                default:
+                    throw new Exception("Invalid platform");
+            }
+        }
+
+        /// <summary>
+        /// Get the port number that the proxy is listening on.
+        /// </summary>
+        /// <returns>Port number</returns>
+        public int GetPort()
+        {
+            switch (Platform)
+            {
+                case "linux-64":
+                    return StaticProxy.GetPortLinux();
+                case "win-64":
+                    return StaticProxy.GetPortx64();
+                case "win-32":
+                    return StaticProxy.GetPortx86();
                 default:
                     throw new Exception("Invalid platform");
             }
