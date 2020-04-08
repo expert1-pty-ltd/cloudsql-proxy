@@ -2,7 +2,7 @@
   "profiles": {
     "cmd": {
       "commandName": "Project",
-      "commandLineArgs": "wise-sandbox-272222:australia-southeast1:tango=tcp:3306"
+      "commandLineArgs": "e1-awesome-project:australia-southeast1:tango=tcp:0"
     }
   }
 }
