@@ -31,7 +31,17 @@
 
     <ItemGroup Condition="'$(OS)'!='Windows_NT'">
         <None Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\cloud_sql_proxy.so">
-            <Link>cloud_sql_proxy_x64.so</Link>
+            <Link>cloud_sql_proxy.so</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CustomToolNamespace></CustomToolNamespace>
+        </None>
+        <None Include="$(MSBuildThisFileDirectory)..\runtimes\linux-musl-x64\native\cloud_sql_proxy.so">
+            <Link>cloud_sql_proxy.so</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CustomToolNamespace></CustomToolNamespace>
+        </None>
+        <None Include="$(MSBuildThisFileDirectory)..\runtimes\alpine-x64\native\cloud_sql_proxy.so">
+            <Link>cloud_sql_proxy.so</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CustomToolNamespace></CustomToolNamespace>
         </None>
