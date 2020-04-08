@@ -45,7 +45,7 @@ namespace cloudsql_proxy_cs
                             }
                         }
                 }
-                return "win-64";
+                return "";
             }
         }
 
