@@ -176,7 +176,20 @@ namespace cloudsql_proxy_cs
             Instance = instance;
             Credentials = credentials;
 
-            StaticProxy.SetCallbackx64(SetStatus);
+            switch (Platform)
+            {
+                case "linux-64":
+                    StaticProxy.SetCallbackLinux(SetStatus);
+                    break;
+                case "win-64":
+                    StaticProxy.SetCallbackx64(SetStatus);
+                    break;
+                case "win-32":
+                    StaticProxy.SetCallbackx86(SetStatus);
+                    break;
+                default:
+                    throw new Exception("Invalid platform");
+            }
 
             job = new Thread(new ThreadStart(RunJob));
             job.Start();
