@@ -45,6 +45,11 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CustomToolNamespace></CustomToolNamespace>
         </None>
+        <None Include="$(MSBuildThisFileDirectory)..\runtimes\alpine-x64\native\cloud_sql_proxy.so">
+            <Link>libcloud_sql_proxy.so</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CustomToolNamespace></CustomToolNamespace>
+        </None>
     </ItemGroup>
 
 </Project>
