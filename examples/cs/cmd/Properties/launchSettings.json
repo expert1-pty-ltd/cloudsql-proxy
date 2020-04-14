@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "cmd": {
-      "commandName": "Project",
-      "commandLineArgs": "e1-awesome-project:australia-southeast1:tango=tcp:0"
-    }
-  }
-}
