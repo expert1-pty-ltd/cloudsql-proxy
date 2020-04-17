@@ -180,7 +180,7 @@ func listenInstance(ctx context.Context, dst chan<- proxy.Conn, cfg instanceConf
 		}
 	}()
 
-	port, _ = strconv.Atoi(strings.Split(l.Addr().String(), ":")[1]);
+	proxyPort, _ = strconv.Atoi(strings.Split(l.Addr().String(), ":")[1]);
 
 	logging.Infof("Listening on %s for %s", l.Addr(), cfg.Instance)
 	return l, nil

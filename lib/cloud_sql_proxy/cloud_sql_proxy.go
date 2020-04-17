@@ -103,7 +103,7 @@ var (
 
 	g_cb C.callbackFunc
 
-	port = 3307
+	proxyPort = 3306
 )
 
 const (
@@ -478,7 +478,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	SetStatus("connected", "")
 
 	proxyClient := &proxy.Client{
-		Port:           port,
+		Port:           proxyPort,
 		MaxConnections: maxConnections,
 		Certs: certs.NewCertSourceOpts(client, certs.RemoteOpts{
 			APIBasePath:    host,
@@ -519,7 +519,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 
 //export GetPort
 func GetPort() int {
-	return port
+	return proxyPort
 }
 
 //export StopProxy

@@ -1,1 +1,0 @@
-export GOOS=; export GOARCH=; export CGO_ENABLED=; export CXX=; export CC=; go build -buildmode=c-shared -o cloud_sql_proxy.so;
