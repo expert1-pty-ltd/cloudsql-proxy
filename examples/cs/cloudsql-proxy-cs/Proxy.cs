@@ -170,11 +170,11 @@ namespace cloudsql_proxy_cs
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
-        public void StartProxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
+        public void StartProxy(AuthenticationMethod authenticationMethod, in string instance, in string credentials)
         {
             AuthenticationMethod = authenticationMethod;
-            Instance = instance;
-            Credentials = credentials;
+            Instance = string.Copy(instance);
+            Credentials = string.Copy(credentials);
 
             switch (Platform)
             {
