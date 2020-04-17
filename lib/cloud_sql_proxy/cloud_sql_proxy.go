@@ -103,7 +103,11 @@ var (
 
 	g_cb C.callbackFunc
 
-	proxyPort = 3306
+	// port proxy is listening on
+	proxyPort = 1234
+
+	// port that connects to sql server
+	sqlPort = 3307
 )
 
 const (
@@ -478,7 +482,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	SetStatus("connected", "")
 
 	proxyClient := &proxy.Client{
-		Port:           proxyPort,
+		Port:           sqlPort,
 		MaxConnections: maxConnections,
 		Certs: certs.NewCertSourceOpts(client, certs.RemoteOpts{
 			APIBasePath:    host,

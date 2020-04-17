@@ -7,12 +7,12 @@
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="cloudsql-proxy-cs" Version="1.0.19" />
+    </ItemGroup>
+
     <!--<ItemGroup>
         <ProjectReference Include="..\cloudsql-proxy-cs\cloudsql-proxy-cs.csproj" />
     </ItemGroup>-->
-
-    <ItemGroup>
-        <PackageReference Include="cloudsql-proxy-cs" Version="1.0.18" />
-    </ItemGroup>
 
 </Project>
