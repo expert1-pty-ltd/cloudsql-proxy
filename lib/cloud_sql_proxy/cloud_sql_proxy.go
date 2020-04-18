@@ -104,7 +104,7 @@ var (
 	g_cb C.callbackFunc
 
 	// port proxy is listening on
-	proxyPort = 1234
+	proxyPort = 0
 
 	// port that connects to sql server
 	sqlPort = 3307

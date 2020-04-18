@@ -250,18 +250,28 @@ namespace cloudsql_proxy_cs
         /// Get the port number that the proxy is listening on.
         /// </summary>
         /// <returns>Port number</returns>
+        /// <exception cref="ProxyNotConnectedException">
+        /// Thrown when function is called and proxy is not connected.
+        /// </exception>
         public int GetPort()
         {
-            switch (Platform)
+            if (Status == Status.Connected)
             {
-                case "linux-64":
-                    return StaticProxy.GetPortLinux();
-                case "win-64":
-                    return StaticProxy.GetPortx64();
-                case "win-32":
-                    return StaticProxy.GetPortx86();
-                default:
-                    throw new Exception("Invalid platform");
+                switch (Platform)
+                {
+                    case "linux-64":
+                        return StaticProxy.GetPortLinux();
+                    case "win-64":
+                        return StaticProxy.GetPortx64();
+                    case "win-32":
+                        return StaticProxy.GetPortx86();
+                    default:
+                        throw new Exception("Invalid platform");
+                }
+            }
+            else {
+                // not connected yet, so port is unallocated.
+                throw new ProxyNotConnectedException();
             }
         }
 
@@ -273,12 +283,15 @@ namespace cloudsql_proxy_cs
             switch (Platform)
             {
                 case "linux-64":
+                    StaticProxy.SetCallbackLinux(null);
                     StaticProxy.StopProxyLinux();
                     break;
                 case "win-64":
+                    StaticProxy.SetCallbackx64(null);
                     StaticProxy.StopProxyx64();
                     break;
                 case "win-32":
+                    StaticProxy.SetCallbackx86(null);
                     StaticProxy.StopProxyx86();
                     break;
                 default:
