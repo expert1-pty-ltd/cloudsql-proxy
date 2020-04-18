@@ -54,6 +54,7 @@ namespace cloudsql_proxy_cs
         private string Credentials { get; set; }
 
         private Thread job;
+        private StaticProxy.StatusCallback statusCallbackReference;
 
         /// <summary>
         /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
@@ -175,17 +176,18 @@ namespace cloudsql_proxy_cs
             AuthenticationMethod = authenticationMethod;
             Instance = string.Copy(instance);
             Credentials = string.Copy(credentials);
+            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
 
             switch (Platform)
             {
                 case "linux-64":
-                    StaticProxy.SetCallbackLinux(SetStatus);
+                    StaticProxy.SetCallbackLinux(statusCallbackReference);
                     break;
                 case "win-64":
-                    StaticProxy.SetCallbackx64(SetStatus);
+                    StaticProxy.SetCallbackx64(statusCallbackReference);
                     break;
                 case "win-32":
-                    StaticProxy.SetCallbackx86(SetStatus);
+                    StaticProxy.SetCallbackx86(statusCallbackReference);
                     break;
                 default:
                     throw new Exception("Invalid platform");
@@ -283,15 +285,12 @@ namespace cloudsql_proxy_cs
             switch (Platform)
             {
                 case "linux-64":
-                    StaticProxy.SetCallbackLinux(null);
                     StaticProxy.StopProxyLinux();
                     break;
                 case "win-64":
-                    StaticProxy.SetCallbackx64(null);
                     StaticProxy.StopProxyx64();
                     break;
                 case "win-32":
-                    StaticProxy.SetCallbackx86(null);
                     StaticProxy.StopProxyx86();
                     break;
                 default:
