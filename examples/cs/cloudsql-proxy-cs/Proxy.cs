@@ -155,17 +155,6 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Contruct and start proxy.
-        /// </summary>
-        /// <param name="authenticationMethod">authentication method</param>
-        /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
-        /// <param name="credentials">credential file or json</param>
-        public Proxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
-        {
-            this.StartProxy(authenticationMethod, instance, credentials);
-        }
-
-        /// <summary>
         /// Start the proxy manually.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
@@ -353,6 +342,9 @@ namespace cloudsql_proxy_cs
         ///<inheritdoc cref="IDisposable"/> 
         public void Dispose()
         {
+            // destroy the delegate
+            statusCallbackReference = null;
+
             // instruct proxy to die
             StopProxy();
         }
