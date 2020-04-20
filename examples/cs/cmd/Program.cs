@@ -40,7 +40,7 @@ namespace cmd
             }
             else
             {
-                var proxy = new cloudsql_proxy_cs.Proxy(false);
+                var proxy =  cloudsql_proxy_cs.Proxy.GetInstance(false);
 
                 proxy.OnStatusChanged += (object sender, cloudsql_proxy_cs.StatusEventArgs status) =>
                 {
@@ -139,6 +139,9 @@ namespace cmd
                     }
                     input = Console.ReadLine()?.ToLower()?.Trim();
                 }
+
+                proxy?.Dispose();
+                proxy = null;
 
                 NonBlockingConsole.WriteDebug("Shutting down thread");
                 NonBlockingConsole.WriteDebug("Good bye");

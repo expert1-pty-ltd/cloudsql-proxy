@@ -25,6 +25,8 @@ namespace cloudsql_proxy_cs
     /// </summary>
     public class Proxy : IDisposable
     {
+        private static Proxy _instance;
+
         private string Platform
         {
             get
@@ -111,10 +113,24 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// Default constructor - must start proxy manually.
         /// </summary>
-        public Proxy(bool throwExceptionOnReconnect = true)
+        private Proxy(bool throwExceptionOnReconnect = true)
         {
             ThrowExceptionOnReconnect = throwExceptionOnReconnect;
             jobs = new Dictionary<string, Thread>();
+        }
+
+        /// <summary>
+        /// Get static instance of the proxy
+        /// </summary>
+        /// <param name="throwExceptionOnReconnect">true iff we want an exception thrown when connecting on an existing proxy</param>
+        /// <returns></returns>
+        public static Proxy GetInstance(bool throwExceptionOnReconnect = true)
+        {
+            if (_instance == null)
+            {
+                _instance = new Proxy(throwExceptionOnReconnect);
+            }
+            return _instance;
         }
 
         /// <summary>
