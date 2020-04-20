@@ -54,6 +54,7 @@ namespace cloudsql_proxy_cs
         private string Instance { get; set; }
         private string Credentials { get; set; }
 
+        private StaticProxy.StatusCallback statusCallbackReference;
         private Dictionary<string, Thread> jobs;
 
         /// <summary>
@@ -117,23 +118,12 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Contruct and start proxy.
-        /// </summary>
-        /// <param name="authenticationMethod">authentication method</param>
-        /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
-        /// <param name="credentials">credential file or json</param>
-        public Proxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
-        {
-            this.StartProxy(authenticationMethod, instance, credentials);
-        }
-
-        /// <summary>
         /// Start the proxy manually.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
-        public void StartProxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
+        public void StartProxy(AuthenticationMethod authenticationMethod, in string instance, in string credentials)
         {
             if (jobs.ContainsKey(instance))
             {
@@ -145,19 +135,20 @@ namespace cloudsql_proxy_cs
             }
 
             AuthenticationMethod = authenticationMethod;
-            Instance = instance;
-            Credentials = credentials;
+            Instance = string.Copy(instance);
+            Credentials = string.Copy(credentials);
+            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
 
             switch (Platform)
             {
                 case "linux-64":
-                    StaticProxy.SetCallbackLinux(SetStatus);
+                    StaticProxy.SetCallbackLinux(statusCallbackReference);
                     break;
                 case "win-64":
-                    StaticProxy.SetCallbackx64(SetStatus);
+                    StaticProxy.SetCallbackx64(statusCallbackReference);
                     break;
                 case "win-32":
-                    StaticProxy.SetCallbackx86(SetStatus);
+                    StaticProxy.SetCallbackx86(statusCallbackReference);
                     break;
                 default:
                     throw new Exception("Invalid platform");
@@ -261,6 +252,30 @@ namespace cloudsql_proxy_cs
                     return StaticProxy.GetPortx86(Encoding.UTF8.GetBytes(instances));
                 default:
                     throw new Exception("Invalid platform");
+            }
+        }
+        /// <exception cref="ProxyNotConnectedException">
+        /// Thrown when function is called and proxy is not connected.
+        /// </exception>
+        public int GetPort()
+        {
+            if (Status == Status.Connected)
+            {
+                switch (Platform)
+                {
+                    case "linux-64":
+                        return StaticProxy.GetPortLinux();
+                    case "win-64":
+                        return StaticProxy.GetPortx64();
+                    case "win-32":
+                        return StaticProxy.GetPortx86();
+                    default:
+                        throw new Exception("Invalid platform");
+                }
+            }
+            else {
+                // not connected yet, so port is unallocated.
+                throw new ProxyNotConnectedException();
             }
         }
 
@@ -415,6 +430,9 @@ namespace cloudsql_proxy_cs
         ///<inheritdoc cref="IDisposable"/> 
         public void Dispose()
         {
+            // destroy the delegate
+            statusCallbackReference = null;
+
             // instruct proxy to die
             StopAll();
         }
