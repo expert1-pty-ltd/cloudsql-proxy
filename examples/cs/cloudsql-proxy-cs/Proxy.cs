@@ -101,11 +101,18 @@ namespace cloudsql_proxy_cs
             return GetStatus(instances) == Status.Disconnected;
         }
 
+        private bool ThrowExceptionOnReconnect
+        {
+            get;
+             set;
+        }
+
         /// <summary>
         /// Default constructor - must start proxy manually.
         /// </summary>
-        public Proxy()
+        public Proxy(bool throwExceptionOnReconnect = true)
         {
+            ThrowExceptionOnReconnect = throwExceptionOnReconnect;
             jobs = new Dictionary<string, Thread>();
         }
 
@@ -130,7 +137,11 @@ namespace cloudsql_proxy_cs
         {
             if (jobs.ContainsKey(instance))
             {
-                throw new DuplicateProxyException($"An instance of the proxy {instance} has already been created");
+                if (ThrowExceptionOnReconnect)
+                {
+                    throw new DuplicateProxyException($"An instance of the proxy {instance} has already been created");
+                }
+                return;
             }
 
             AuthenticationMethod = authenticationMethod;
@@ -179,7 +190,7 @@ namespace cloudsql_proxy_cs
                     });
                     break;
                 case "connected":
-                    OnStatusChanged?.Invoke(this,  new StatusEventArgs()
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instanceStr,
                         Status = Status.Connected
@@ -187,7 +198,7 @@ namespace cloudsql_proxy_cs
                     OnConnected?.Invoke(this, instanceStr);
                     break;
                 case "error":
-                    OnStatusChanged?.Invoke(this,  new StatusEventArgs()
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instanceStr,
                         Status = Status.Error
@@ -199,7 +210,7 @@ namespace cloudsql_proxy_cs
                     });
                     break;
                 default:
-                    OnStatusChanged?.Invoke(this,  new StatusEventArgs()
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instanceStr,
                         Status = Status.Disconnected

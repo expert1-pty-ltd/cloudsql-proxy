@@ -40,7 +40,7 @@ namespace cmd
             }
             else
             {
-                var proxy = new cloudsql_proxy_cs.Proxy();
+                var proxy = new cloudsql_proxy_cs.Proxy(false);
 
                 proxy.OnStatusChanged += (object sender, cloudsql_proxy_cs.StatusEventArgs status) =>
                 {
@@ -86,6 +86,24 @@ namespace cmd
                                 else
                                 {
                                     Console.WriteLine("Usage: status [instance]");
+                                }
+                            }
+                            break;
+                        case "port":
+                            {
+                                var instance = "";
+                                try
+                                {
+                                    instance = input.Split(" ".ToCharArray())[1];
+                                }
+                                catch { }
+                                if (!string.IsNullOrWhiteSpace(instance))
+                                {
+                                    NonBlockingConsole.WriteLine($"Port: {proxy.GetPort(instance)}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Usage: port [instance]");
                                 }
                             }
                             break;
