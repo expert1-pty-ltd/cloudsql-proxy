@@ -17,23 +17,11 @@ using System.Runtime.Serialization;
 
 namespace cloudsql_proxy_cs
 {
+    /// <summary>
+    /// An exception thrown when a connection to the given instance doesn't exist.
+    /// </summary>
     [Serializable]
-    internal class InvalidProxyException : Exception
+    public class InvalidProxyException : Exception
     {
-        public InvalidProxyException()
-        {
-        }
-
-        public InvalidProxyException(string message) : base(message)
-        {
-        }
-
-        public InvalidProxyException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected InvalidProxyException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }

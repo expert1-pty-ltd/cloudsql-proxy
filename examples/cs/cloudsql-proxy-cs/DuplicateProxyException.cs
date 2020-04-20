@@ -17,23 +17,11 @@ using System.Runtime.Serialization;
 
 namespace cloudsql_proxy_cs
 {
+    /// <summary>
+    /// An exception thrown when a connection to the given instance already exists.
+    /// </summary>
     [Serializable]
-    internal class DuplicateProxyException : Exception
+    public class DuplicateProxyException : Exception
     {
-        public DuplicateProxyException()
-        {
-        }
-
-        public DuplicateProxyException(string message) : base(message)
-        {
-        }
-
-        public DuplicateProxyException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected DuplicateProxyException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }
