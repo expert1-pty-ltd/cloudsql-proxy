@@ -40,7 +40,8 @@ namespace cmd
             }
             else
             {
-                var proxy =  cloudsql_proxy_cs.Proxy.GetInstance(false);
+                NonBlockingConsole.WriteLine("Getting instance");
+                var proxy =  cloudsql_proxy_cs.Proxy.GetInstance();
 
                 proxy.OnStatusChanged += (object sender, cloudsql_proxy_cs.StatusEventArgs status) =>
                 {
@@ -64,6 +65,7 @@ namespace cmd
                                 if (!string.IsNullOrWhiteSpace(instance))
                                 {
                                     proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile);
+                                    Console.WriteLine("Started");
                                 }
                                 else
                                 {

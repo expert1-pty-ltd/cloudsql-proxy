@@ -23,5 +23,12 @@ namespace cloudsql_proxy_cs
     [Serializable]
     public class InvalidProxyException : Exception
     {
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="message"></param>
+        public InvalidProxyException(string message) : base(message)
+        {
+        }
     }
 }

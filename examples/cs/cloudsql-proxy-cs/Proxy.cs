@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace cloudsql_proxy_cs
 {
@@ -57,7 +58,9 @@ namespace cloudsql_proxy_cs
         private string Credentials { get; set; }
 
         private StaticProxy.StatusCallback statusCallbackReference;
+        private Dictionary<string, TaskCompletionSource<string>> tcss;
         private Dictionary<string, Thread> jobs;
+        private Dictionary<string, int> proxyCounter;
 
         /// <summary>
         /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
@@ -104,52 +107,48 @@ namespace cloudsql_proxy_cs
             return GetStatus(instances) == Status.Disconnected;
         }
 
-        private bool ThrowExceptionOnReconnect
-        {
-            get;
-             set;
-        }
-
         /// <summary>
         /// Default constructor - must start proxy manually.
         /// </summary>
-        private Proxy(bool throwExceptionOnReconnect = true)
+        private Proxy()
         {
-            ThrowExceptionOnReconnect = throwExceptionOnReconnect;
+            tcss = new Dictionary<string, TaskCompletionSource<string>>();
             jobs = new Dictionary<string, Thread>();
+            proxyCounter = new Dictionary<string, int>();
         }
 
         /// <summary>
         /// Get static instance of the proxy
         /// </summary>
-        /// <param name="throwExceptionOnReconnect">true iff we want an exception thrown when connecting on an existing proxy</param>
         /// <returns></returns>
-        public static Proxy GetInstance(bool throwExceptionOnReconnect = true)
+        public static Proxy GetInstance()
         {
             if (_instance == null)
             {
-                _instance = new Proxy(throwExceptionOnReconnect);
+                _instance = new Proxy();
             }
             return _instance;
         }
 
         /// <summary>
-        /// Start the proxy manually.
+        /// Start the proxy manually. This method will block until the proxy is connected.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
-        /// <exception cref="DuplicateProxyException">
-        /// Thrown when function is called and proxy has previously been started.
-        /// </exception>
         public void StartProxy(AuthenticationMethod authenticationMethod, in string instance, in string credentials)
         {
             if (jobs.ContainsKey(instance))
             {
-                if (ThrowExceptionOnReconnect)
+                if (GetStatus(instance) != Status.Connected)
                 {
-                    throw new DuplicateProxyException($"An instance of the proxy {instance} has already been created");
+                    var waitResult = tcss[instance].Task.Result;
+                    if (!string.IsNullOrWhiteSpace(waitResult))
+                    {
+                        throw new Exception(waitResult);
+                    }
                 }
+                proxyCounter[instance]++;
                 return;
             }
 
@@ -173,8 +172,16 @@ namespace cloudsql_proxy_cs
                     throw new Exception("Invalid platform");
             }
 
+            tcss.Add(instance, new TaskCompletionSource<string>());
             jobs.Add(instance, new Thread(new ThreadStart(RunJob)));
+            proxyCounter.Add(instance, 1);
             jobs[instance].Start();
+
+            var result = tcss[instance].Task.Result;
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                throw new Exception(result);
+            }
         }
 
         /// <summary>
@@ -206,6 +213,7 @@ namespace cloudsql_proxy_cs
                         Status = Status.Connected
                     });
                     OnConnected?.Invoke(this, instanceStr);
+                    tcss[instanceStr]?.TrySetResult("");
                     break;
                 case "error":
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
@@ -218,6 +226,7 @@ namespace cloudsql_proxy_cs
                         Instance = instanceStr,
                         ErrorMessage = errorStr
                     });
+                    tcss[instanceStr]?.TrySetResult(errorStr);
                     break;
                 default:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
@@ -304,32 +313,43 @@ namespace cloudsql_proxy_cs
                 throw new InvalidProxyException($"The proxy instance {instances} has not been started");
             }
 
-            if (GetStatus(instances) == Status.Connected)
+            // only shut down once we know we don't have any more connections
+            if (proxyCounter[instances] > 1)
             {
-                switch (Platform)
-                {
-                    case "linux-64":
-                        StaticProxy.StopProxyLinux(Encoding.UTF8.GetBytes(instances));
-                        break;
-                    case "win-64":
-                        StaticProxy.StopProxyx64(Encoding.UTF8.GetBytes(instances));
-                        break;
-                    case "win-32":
-                        StaticProxy.StopProxyx86(Encoding.UTF8.GetBytes(instances));
-                        break;
-                    default:
-                        throw new Exception("Invalid platform");
-                }
+                proxyCounter[instances]--;
             }
             else
             {
-                // not connected yet, so port is unallocated.
-                throw new ProxyNotConnectedException();
+                if (GetStatus(instances) == Status.Connected)
+                {
+                    switch (Platform)
+                    {
+                        case "linux-64":
+                            StaticProxy.StopProxyLinux(Encoding.UTF8.GetBytes(instances));
+                            break;
+                        case "win-64":
+                            StaticProxy.StopProxyx64(Encoding.UTF8.GetBytes(instances));
+                            break;
+                        case "win-32":
+                            StaticProxy.StopProxyx86(Encoding.UTF8.GetBytes(instances));
+                            break;
+                        default:
+                            throw new Exception("Invalid platform");
+                    }
+                }
+                else
+                {
+                    // not connected yet, so port is unallocated.
+                    throw new ProxyNotConnectedException();
+                }
+
+                // wait for proxy to die
+                jobs[instances].Join(5000);
+                proxyCounter.Remove(instances);
+                jobs.Remove(instances);
+                tcss.Remove(instances);
             }
 
-            // wait for proxy to die
-            jobs[instances].Join(5000);
-            jobs.Remove(instances);
         }
 
         /// <summary>
