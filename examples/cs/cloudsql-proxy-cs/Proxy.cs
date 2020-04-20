@@ -123,6 +123,9 @@ namespace cloudsql_proxy_cs
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
+        /// <exception cref="DuplicateProxyException">
+        /// Thrown when function is called and proxy has previously been started.
+        /// </exception>
         public void StartProxy(AuthenticationMethod authenticationMethod, in string instance, in string credentials)
         {
             if (jobs.ContainsKey(instance))
@@ -234,6 +237,12 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// Get the port number that the proxy is listening on.
         /// </summary>
+        /// <exception cref="ProxyNotConnectedException">
+        /// Thrown when function is called and proxy is not connected.
+        /// </exception>
+        /// <exception cref="InvalidProxyException">
+        /// Thrown when function is called and proxy has not been started.
+        /// </exception>
         /// <returns>Port number</returns>
         public int GetPort(string instances)
         {
@@ -242,38 +251,22 @@ namespace cloudsql_proxy_cs
                 throw new InvalidProxyException($"The proxy instance {instances} has not been started");
             }
 
-            switch (Platform)
-            {
-                case "linux-64":
-                    return StaticProxy.GetPortLinux(Encoding.UTF8.GetBytes(instances));
-                case "win-64":
-                    return StaticProxy.GetPortx64(Encoding.UTF8.GetBytes(instances));
-                case "win-32":
-                    return StaticProxy.GetPortx86(Encoding.UTF8.GetBytes(instances));
-                default:
-                    throw new Exception("Invalid platform");
-            }
-        }
-        /// <exception cref="ProxyNotConnectedException">
-        /// Thrown when function is called and proxy is not connected.
-        /// </exception>
-        public int GetPort()
-        {
-            if (Status == Status.Connected)
+            if (GetStatus(instances) == Status.Connected)
             {
                 switch (Platform)
                 {
                     case "linux-64":
-                        return StaticProxy.GetPortLinux();
+                        return StaticProxy.GetPortLinux(Encoding.UTF8.GetBytes(instances));
                     case "win-64":
-                        return StaticProxy.GetPortx64();
+                        return StaticProxy.GetPortx64(Encoding.UTF8.GetBytes(instances));
                     case "win-32":
-                        return StaticProxy.GetPortx86();
+                        return StaticProxy.GetPortx86(Encoding.UTF8.GetBytes(instances));
                     default:
                         throw new Exception("Invalid platform");
                 }
             }
-            else {
+            else
+            {
                 // not connected yet, so port is unallocated.
                 throw new ProxyNotConnectedException();
             }
@@ -281,6 +274,12 @@ namespace cloudsql_proxy_cs
 
         /// <summary>
         /// Stops the Proxy.
+        /// <exception cref="ProxyNotConnectedException">
+        /// Thrown when function is called and proxy is not connected.
+        /// </exception>
+        /// <exception cref="InvalidProxyException">
+        /// Thrown when function is called and proxy has not been started.
+        /// </exception>
         /// </summary>
         public void StopProxy(string instances)
         {
@@ -289,19 +288,27 @@ namespace cloudsql_proxy_cs
                 throw new InvalidProxyException($"The proxy instance {instances} has not been started");
             }
 
-            switch (Platform)
+            if (GetStatus(instances) == Status.Connected)
             {
-                case "linux-64":
-                    StaticProxy.StopProxyLinux(Encoding.UTF8.GetBytes(instances));
-                    break;
-                case "win-64":
-                    StaticProxy.StopProxyx64(Encoding.UTF8.GetBytes(instances));
-                    break;
-                case "win-32":
-                    StaticProxy.StopProxyx86(Encoding.UTF8.GetBytes(instances));
-                    break;
-                default:
-                    throw new Exception("Invalid platform");
+                switch (Platform)
+                {
+                    case "linux-64":
+                        StaticProxy.StopProxyLinux(Encoding.UTF8.GetBytes(instances));
+                        break;
+                    case "win-64":
+                        StaticProxy.StopProxyx64(Encoding.UTF8.GetBytes(instances));
+                        break;
+                    case "win-32":
+                        StaticProxy.StopProxyx86(Encoding.UTF8.GetBytes(instances));
+                        break;
+                    default:
+                        throw new Exception("Invalid platform");
+                }
+            }
+            else
+            {
+                // not connected yet, so port is unallocated.
+                throw new ProxyNotConnectedException();
             }
 
             // wait for proxy to die
