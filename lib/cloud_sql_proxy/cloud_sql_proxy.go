@@ -77,7 +77,6 @@ var (
 	// Settings for how to choose which instance to connect to.
 	dir = ""
 	projects = ""
-	instances = ""
 	instanceSrc = ""
 	useFuse = false
 	fuseTmp = defaultTmp
@@ -88,27 +87,37 @@ var (
 	termTimeout time.Duration = 0
 
 	// Settings for authentication.
-	token = ""
-	tokenFile = ""
-	tokenJson = ""
 	ipAddressTypes = "PUBLIC,PRIVATE"
 
 	// Setting to choose what API to connect to
 	host = ""
 
-	// Track connection status
-	status = "disconnected"
-
 	proxyClient proxy.Client
 
 	g_cb C.callbackFunc
 
-	// port proxy is listening on
-	proxyPort = 1234
-
 	// port that connects to sql server
 	sqlPort = 3307
 )
+
+type ProxyInstance struct {
+	instances string
+	token string
+	tokenFile string
+	tokenJson string
+	// Track connection status
+	status string
+
+	static map[string]net.Listener
+
+	proxyClient *proxy.Client
+	connset *proxy.ConnSet
+	// Initialize a source of new connections to Cloud SQL instances.
+	connSrc <-chan proxy.Conn
+	client *http.Client
+
+	proxyPort int
+}
 
 const (
 	minimumRefreshCfgThrottle = time.Second
@@ -122,7 +131,29 @@ const defaultVersionString = "NO_VERSION_SET"
 
 var versionString = defaultVersionString
 
-var staticInstances map[string]net.Listener
+var activeInstances map[string]*ProxyInstance
+	// expose this globally so we can shut it down later - this is the
+	// channel that stops the program from ever exiting
+var connectionChannels map[string]chan proxy.Conn
+var sigShutdowns map[string]chan int
+var contexts map[string]context.Context
+
+
+var initialised = false
+
+func main() {
+	if (!initialised) {
+		logging.Infof("Initialising...")
+		activeInstances = make(map[string]*ProxyInstance, 0)
+		connectionChannels = make(map[string]chan proxy.Conn, 0)
+		sigShutdowns = make(map[string]chan int, 0)
+		contexts = make(map[string]context.Context, 0)
+
+		logging.Infof("Initialised")
+
+		initialised = true
+	}
+}
 
 // userAgentFromVersionString returns an appropriate user agent string for
 // identifying this proxy process, or a blank string if versionString was not
@@ -150,10 +181,6 @@ func checkFlags(onGCE bool) error {
 		if instanceSrc != "" {
 			return errors.New("-instances_metadata unsupported outside of Google Compute Engine")
 		}
-		return nil
-	}
-
-	if token != "" || tokenFile != "" || tokenJson != "" || os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
 		return nil
 	}
 
@@ -219,12 +246,12 @@ func authenticatedClientFromJson(ctx context.Context, json string) (*http.Client
 	return oauth2.NewClient(ctx, cred.TokenSource), nil
 }
 
-func authenticatedClient(ctx context.Context) (*http.Client, error) {
-	if tokenJson != "" {
-		return authenticatedClientFromJson(ctx, tokenJson)
-	} else if tokenFile != "" {
-		return authenticatedClientFromPath(ctx, tokenFile)
-	} else if tok := token; tok != "" {
+func authenticatedClient(ctx context.Context, instance string) (*http.Client, error) {
+	if activeInstances[instance].tokenJson != "" {
+		return authenticatedClientFromJson(ctx, activeInstances[instance].tokenJson)
+	} else if activeInstances[instance].tokenFile != "" {
+		return authenticatedClientFromPath(ctx, activeInstances[instance].tokenFile)
+	} else if tok := activeInstances[instance].token; tok != "" {
 		src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: tok})
 		return oauth2.NewClient(ctx, src), nil
 	} else if f := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); f != "" {
@@ -312,11 +339,6 @@ func gcloudProject() ([]string, error) {
 	return []string{cfg.Configuration.Properties.Core.Project}, nil
 }
 
-var sigShutdown chan int = make(chan int, 1)
-
-func main() {
-}
-
 //export Echo
 func Echo(message *C.char)(*C.char) {
 	return C.CString(fmt.Sprintf("From DLL: %s", C.GoString(message)))
@@ -324,20 +346,26 @@ func Echo(message *C.char)(*C.char) {
 
 //export StartProxyWithCredentialFile
 func StartProxyWithCredentialFile(_instances *C.char, _tokenFile *C.char) {
-	StartProxy(_instances, _tokenFile, C.CString(""));
+	StartProxy(_instances, _tokenFile, C.CString(""))
 }
 
 //export StartProxyWithCredentialJson
 func StartProxyWithCredentialJson(_instances *C.char, _tokenJson *C.char) {
-	StartProxy(_instances, C.CString(""), _tokenJson);
+	StartProxy(_instances, C.CString(""), _tokenJson)
 }
 
 func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
-	SetStatus("connecting", "")
+	main()
 
-	instances = C.GoString(_instances)
-	tokenFile = C.GoString(_tokenFile)
-	tokenJson = C.GoString(_tokenJson)
+	instance := C.GoString(_instances)
+
+	newInstance := new(ProxyInstance)
+	newInstance.instances = instance
+	newInstance.tokenFile = C.GoString(_tokenFile)
+	newInstance.tokenJson = C.GoString(_tokenJson)
+	newInstance.status = "connecting"
+
+	activeInstances[instance] = newInstance
 
 	if version {
 		fmt.Println("Cloud SQL Proxy:", versionString)
@@ -364,85 +392,76 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	if host != "" && !strings.HasSuffix(host, "/") {
 		logging.Errorf("Flag host should always end with /")
 		flag.PrintDefaults()
-		SetStatus("error", "Flag host should always end with /")
+		SetStatus(instance, "error", "Flag host should always end with /")
 		return
 	}
 
-	// TODO: needs a better place for consolidation
-	// if instances is blank and env var INSTANCES is supplied use it
-	if envInstances := os.Getenv("INSTANCES"); instances == "" && envInstances != "" {
-		instances = envInstances
-	}
-
-	instList := stringList(instances)
+	instList := stringList(instance)
 	projList := stringList(projects)
 
+	var err error
 	// TODO: it'd be really great to consolidate flag verification in one place.
 	if len(instList) == 0 && instanceSrc == "" && len(projList) == 0 && !useFuse {
-		var err error
 		projList, err = gcloudProject()
 		if err == nil {
 			logging.Infof("Using gcloud's active project: %v", projList)
 		} else if gErr, ok := err.(*util.GcloudError); ok && gErr.Status == util.GcloudNotFound {
-			SetStatus("error", "gcloud is not in the path and -instances and -projects are empty")
+			SetStatus(instance, "error", "gcloud is not in the path and -instances and -projects are empty")
 			logging.Errorf("gcloud is not in the path and -instances and -projects are empty")
 			return
 		} else {
-			SetStatus("error", fmt.Sprintf("unable to retrieve the active gcloud project and -instances and -projects are empty: %v", err))
+			SetStatus(instance, "error", fmt.Sprintf("unable to retrieve the active gcloud project and -instances and -projects are empty: %v", err))
 			logging.Errorf("unable to retrieve the active gcloud project and -instances and -projects are empty: %v", err)
 			return
 		}
 	}
 
-	onGCE := metadata.OnGCE()
-	if err := checkFlags(onGCE); err != nil {
-		SetStatus("error", fmt.Sprintf("%v", err))
-		logging.Errorf("%v", err)
-		return
-	}
-
-	ctx = context.Background()
+	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
-	client, err := authenticatedClient(ctx)
-	if err != nil {
-		SetStatus("error", fmt.Sprintf("%v", err))
+	onGCE := metadata.OnGCE()
+	if err := checkFlags(onGCE); err != nil {
+		SetStatus(instance, "error", fmt.Sprintf("%v", err))
 		logging.Errorf("%v", err)
 		return
 	}
 
-	ins, err := listInstances(ctx, client, projList)
+	newInstance.client, err = authenticatedClient(ctx, instance)
 	if err != nil {
-		SetStatus("error", fmt.Sprintf("%v", err))
+		SetStatus(instance, "error", fmt.Sprintf("%v", err))
+		logging.Errorf("%v", err)
+		return
+	}
+
+	ins, err := listInstances(ctx, newInstance.client, projList)
+	if err != nil {
+		SetStatus(instance, "error", fmt.Sprintf("%v", err))
 		logging.Errorf("%v", err)
 		return
 	}
 	instList = append(instList, ins...)
-	cfgs, err := CreateInstanceConfigs(dir, useFuse, instList, instanceSrc, client)
+	cfgs, err := CreateInstanceConfigs(dir, useFuse, instList, instanceSrc, newInstance.client)
 	if err != nil {
-		SetStatus("error", fmt.Sprintf("%v", err))
+		SetStatus(instance, "error", fmt.Sprintf("%v", err))
 		logging.Errorf("%v", err)
 		return
 	}
 
+	// initialise this here
+	newInstance.static = make(map[string]net.Listener, len(cfgs))
+
 	// We only need to store connections in a ConnSet if FUSE is used; otherwise
 	// it is not efficient to do so.
-	var connset *proxy.ConnSet
-
-	// initialise this here
-	staticInstances = make(map[string]net.Listener, len(cfgs))
-
-	// Initialize a source of new connections to Cloud SQL instances.
-	var connSrc <-chan proxy.Conn
+	
 	if useFuse {
-		connset = proxy.NewConnSet()
-		c, fuse, err := fuse.NewConnSrc(dir, fuseTmp, connset)
+		newInstance.connset = proxy.NewConnSet()
+		c, fuse, err := fuse.NewConnSrc(dir, fuseTmp, newInstance.connset)
 		if err != nil {
-			SetStatus("error", fmt.Sprintf("Could not start fuse directory at %q: %v", dir, err))
+			SetStatus(instance, "error", fmt.Sprintf("Could not start fuse directory at %q: %v", dir, err))
 			logging.Errorf("Could not start fuse directory at %q: %v", dir, err)
 			return;
 		}
-		connSrc = c
+		newInstance.connSrc = c
 		defer fuse.Close()
 	} else {
 		updates := make(chan string)
@@ -456,7 +475,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 						return nil
 					})
 					if err != nil {
-						SetStatus("error", fmt.Sprintf("Error on receiving new instances from metadata: %v", err))
+						SetStatus(instance, "error", fmt.Sprintf("Error on receiving new instances from metadata: %v", err))
 						logging.Errorf("Error on receiving new instances from metadata: %v", err)
 						return
 					}
@@ -465,13 +484,13 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 			}()
 		}
 
-		c, err := WatchInstances(ctx, dir, cfgs, updates, staticInstances, client)
+		c, err := WatchInstances(ctx, instance, dir, cfgs, updates, newInstance.static, newInstance.client)
 		if err != nil {
-			SetStatus("error", fmt.Sprintf("%v", err))
+			SetStatus(instance, "error", fmt.Sprintf("%v", err))
 			logging.Errorf("%v", err)
 			return
 		}
-		connSrc = c
+		newInstance.connSrc = c
 	}
 
 	refreshCfgThrottle := refreshCfgThrottle
@@ -479,20 +498,22 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		refreshCfgThrottle = minimumRefreshCfgThrottle
 	}
 	logging.Infof("Ready for new connections")
-	SetStatus("connected", "")
+	SetStatus(instance, "connected", "")
 
-	proxyClient := &proxy.Client{
+	newInstance.proxyClient = &proxy.Client{
 		Port:           sqlPort,
 		MaxConnections: maxConnections,
-		Certs: certs.NewCertSourceOpts(client, certs.RemoteOpts{
+		Certs: certs.NewCertSourceOpts(newInstance.client, certs.RemoteOpts{
 			APIBasePath:    host,
 			IgnoreRegion:   !checkRegion,
 			UserAgent:      userAgentFromVersionString(),
 			IPAddrTypeOpts: ipAddrTypeOptsInput,
 		}),
-		Conns:              connset,
+		Conns:              newInstance.connset,
 		RefreshCfgThrottle: refreshCfgThrottle,
 	}
+
+	sigShutdowns[instance] = make(chan int, 1)
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
@@ -505,45 +526,59 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		select {
 		case <-signals:
 			logging.Infof("Received TERM signal")
+			for instance, _ := range activeInstances {
+				ShutdownProxy(instance)
+			}
 			cancel()
-		case <- sigShutdown:
-			logging.Infof("shutdown signal sent")
+		case <- sigShutdowns[instance]:
+			logging.Infof("shutdown signal sent: %v", instance)
+			ShutdownProxy(instance)
 			cancel()
 		case <-ctx.Done():
 			logging.Infof("context done")
 		}
-		ShutdownProxy()
 		return
 	}()
 
-	proxyClient.Run(connSrc)
+	newInstance.proxyClient.Run(newInstance.connSrc)
 
-	logging.Infof("Main exiting")
+	logging.Infof("Instance method terminated: %v", instance)
 }
 
 //export GetPort
-func GetPort() int {
-	return proxyPort
+func GetPort(i *C.char) int {
+	instance := C.GoString(i)
+	return activeInstances[instance].proxyPort
 }
 
 //export StopProxy
-func StopProxy() {
+func StopProxy(i *C.char) {
+	instance := C.GoString(i)
+
 	// send shutdown
-	logging.Infof("Sending shutdown")
-	sigShutdown <- 1
+	logging.Infof("Sending shutdown: %v", instance)
+	sigShutdowns[instance] <- 1
 }
 
-func ShutdownProxy() {
+//export StopAll
+func StopAll() {
+	logging.Infof("Sending shutdown all")
+	for instance, _ := range activeInstances {
+		sigShutdowns[instance] <- 1
+	}
+}
+
+func ShutdownProxy(instance string) {
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
 
 	// shutdown connections
 	logging.Infof("Close connections")
-	proxyClient.Conns.Close()
-	proxyClient.Shutdown(termTimeout)
+	activeInstances[instance].proxyClient.Conns.Close()
+	activeInstances[instance].proxyClient.Shutdown(termTimeout)
 
 	// shutdown listeners
 	logging.Infof("Close listeners")
-	for _, v := range staticInstances {
+	for _, v := range activeInstances[instance].static {
 		if err := v.Close(); err != nil {
 			logging.Errorf("Error closing %q: %v", v.Addr(), err)
 		}
@@ -551,14 +586,15 @@ func ShutdownProxy() {
 
 	// close connection channel
 	// this is exposed in proxy.go
-	close(connectionChannel)
+	close(connectionChannels[instance])
 
-	SetStatus("disconnected", "")
+	SetStatus(instance, "disconnected", "")
 }
 
 //export GetStatus
-func GetStatus()(*C.char)  {
-	return C.CString(status)
+func GetStatus(i *C.char)(*C.char)  {
+	instance := C.GoString(i)
+	return C.CString(activeInstances[instance].status)
 }
 
 //export SetCallback
@@ -572,7 +608,7 @@ func SetCallback(cb C.callbackFunc) {
 * It calls invokeFunctionPointer from extern.c, it passes it the stored function pointer
 * of the delegate from the C# wrapper
 */
-func SetStatus(s string, e string) {
-	status = s
-	C.invokeFunctionPointer(g_cb, C.CString(s), C.CString(e));
+func SetStatus(i string, s string, e string) {
+	activeInstances[i].status = s
+	C.invokeFunctionPointer(g_cb, C.CString(i), C.CString(s), C.CString(e));
 }

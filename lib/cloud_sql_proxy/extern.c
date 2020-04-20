@@ -4,7 +4,7 @@
 // from the C# wrapper.
 // Go - by itself - is unable to execute the function but it can call this
 // C code which can
-void invokeFunctionPointer(callbackFunc f, char* s, char* e)
+void invokeFunctionPointer(callbackFunc f, char* i, char* s, char* e)
 {
-		return f(s, e);
+		return f(i, s, e);
 }

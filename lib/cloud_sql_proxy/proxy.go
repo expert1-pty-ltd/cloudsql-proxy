@@ -39,22 +39,18 @@ import (
 	sqladmin "google.golang.org/api/sqladmin/v1beta4"
 )
 
-// expose this globally so we can shut it down later - this is the
-// channel that stops the program from ever exiting
-var connectionChannel chan proxy.Conn
-
 // WatchInstances handles the lifecycle of local sockets used for proxying
 // local connections.  Values received from the updates channel are
 // interpretted as a comma-separated list of instances.  The set of sockets in
 // 'dir' is the union of 'instances' and the most recent list from 'updates'.
-func WatchInstances(ctx context.Context, dir string, cfgs []instanceConfig, updates <-chan string, static map[string]net.Listener, cl *http.Client) (<-chan proxy.Conn, error) {
-	connectionChannel = make(chan proxy.Conn, 1)
+func WatchInstances(ctx context.Context, instance string, dir string, cfgs []instanceConfig, updates <-chan string, static map[string]net.Listener, cl *http.Client) (<-chan proxy.Conn, error) {
+	connectionChannels[instance] = make(chan proxy.Conn, 1)
 
 	// Instances specified statically (e.g. as flags to the binary) will always
 	// be available. They are ignored if also returned by the GCE metadata since
 	// the socket will already be open.
 	for _, v := range cfgs {
-		l, err := listenInstance(ctx, connectionChannel, v)
+		l, err := listenInstance(ctx, instance, connectionChannels[instance], v)
 		if err != nil {
 			return nil, err
 		}
@@ -62,12 +58,12 @@ func WatchInstances(ctx context.Context, dir string, cfgs []instanceConfig, upda
 	}
 
 	if updates != nil {
-		go watchInstancesLoop(ctx, dir, connectionChannel, updates, static, cl)
+		go watchInstancesLoop(ctx, instance, dir, connectionChannels[instance], updates, static, cl)
 	}
-	return connectionChannel, nil
+	return connectionChannels[instance], nil
 }
 
-func watchInstancesLoop(ctx context.Context, dir string, dst chan<- proxy.Conn, updates <-chan string, static map[string]net.Listener, cl *http.Client) {
+func watchInstancesLoop(ctx context.Context, instance string, dir string, dst chan<- proxy.Conn, updates <-chan string, static map[string]net.Listener, cl *http.Client) {
 	dynamicInstances := make(map[string]net.Listener)
 	for instances := range updates {
 		list, err := parseInstanceConfigs(dir, strings.Split(instances, ","), cl)
@@ -93,7 +89,7 @@ func watchInstancesLoop(ctx context.Context, dir string, dst chan<- proxy.Conn, 
 				continue
 			}
 
-			l, err := listenInstance(ctx, dst, cfg)
+			l, err := listenInstance(ctx, instance, dst, cfg)
 			if err != nil {
 				logging.Errorf("Couldn't open socket for %q: %v", instance, err)
 				continue
@@ -132,7 +128,7 @@ func remove(path string) {
 
 // listenInstance starts listening on a new unix socket in dir to connect to the
 // specified instance. New connections to this socket are sent to dst.
-func listenInstance(ctx context.Context, dst chan<- proxy.Conn, cfg instanceConfig) (net.Listener, error) {
+func listenInstance(ctx context.Context, instance string, dst chan<- proxy.Conn, cfg instanceConfig) (net.Listener, error) {
 	unix := cfg.Network == "unix"
 	if unix {
 		remove(cfg.Address)
@@ -180,7 +176,7 @@ func listenInstance(ctx context.Context, dst chan<- proxy.Conn, cfg instanceConf
 		}
 	}()
 
-	proxyPort, _ = strconv.Atoi(strings.Split(l.Addr().String(), ":")[1]);
+	activeInstances[instance].proxyPort, _ = strconv.Atoi(strings.Split(l.Addr().String(), ":")[1]);
 
 	logging.Infof("Listening on %s for %s", l.Addr(), cfg.Instance)
 	return l, nil

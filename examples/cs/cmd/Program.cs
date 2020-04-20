@@ -23,14 +23,14 @@ namespace cmd
 
         static void Main(string[] args)
         {
-            var instance = args.Length == 1 ? args[0] : "";
+            //var instance = args.Length == 1 ? args[0] : "";
             var tokenFile = args.Length == 2 ? args[1] : @"google_cloud_key.json";
 
             // Validate Instance
-            if (string.IsNullOrWhiteSpace(instance))
-            {
-                NonBlockingConsole.WriteError("Usage: cmd instance [tokenFile]");
-            }
+            //if (string.IsNullOrWhiteSpace(instance))
+            //{
+            //    NonBlockingConsole.WriteError("Usage: cmd instance [tokenFile]");
+            //}
 
             // Validate Token File
             if (!System.IO.File.Exists(tokenFile))
@@ -42,32 +42,84 @@ namespace cmd
             {
                 var proxy = new cloudsql_proxy_cs.Proxy();
 
-                proxy.OnStatusChanged += (object sender, cloudsql_proxy_cs.Status status) =>
+                proxy.OnStatusChanged += (object sender, cloudsql_proxy_cs.StatusEventArgs status) =>
                 {
-                    NonBlockingConsole.WriteLine($"Status from Event: {status}");
+                    NonBlockingConsole.WriteLine($"Status from instance: {status.Instance}: {status.Status}");
                 };
 
                 NonBlockingConsole.WriteLine("Type :quit to exit");
                 var input = Console.ReadLine().ToLower().Trim();
                 while (input != ":quit" || !exit)
                 {
-                    switch (input)
+                    switch (input.Split(" ".ToCharArray())[0])
                     {
                         case "start":
-                            proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile);
+                            {
+                                var instance = "";
+                                try
+                                {
+                                    instance = input.Split(" ".ToCharArray())[1];
+                                }
+                                catch { }
+                                if (!string.IsNullOrWhiteSpace(instance))
+                                {
+                                    proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Usage: start [instance]");
+                                }
+                            }
                             break;
                         case "status":
-                            NonBlockingConsole.WriteLine($"Status: {proxy.Status}");
+                            {
+                                var instance = "";
+                                try
+                                {
+                                    instance = input.Split(" ".ToCharArray())[1];
+                                }
+                                catch { }
+                                if (!string.IsNullOrWhiteSpace(instance))
+                                {
+                                    NonBlockingConsole.WriteLine($"Status: {proxy.GetStatus(instance)}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Usage: status [instance]");
+                                }
+                            }
                             break;
                         case "stop":
-                            proxy.StopProxy();
+                            {
+                                var instance = "";
+                                try
+                                {
+                                    instance = input.Split(" ".ToCharArray())[1];
+                                }
+                                catch { }
+                                if (!string.IsNullOrWhiteSpace(instance))
+                                {
+                                    proxy.StopProxy(instance);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Usage: stop [instance]");
+                                }
+                            }
+                            break;
+                        case "help":
+                            Console.WriteLine("Usage: start [instance]");
+                            Console.WriteLine("       status [instance]");
+                            Console.WriteLine("       stop [instance]");
+                            break;
+                        case ":quit":
                             exit = true;
                             break;
                         default:
                             NonBlockingConsole.WriteLine("Type :quit to exit");
                             break;
                     }
-                        input = Console.ReadLine()?.ToLower()?.Trim();
+                    input = Console.ReadLine()?.ToLower()?.Trim();
                 }
 
                 NonBlockingConsole.WriteDebug("Shutting down thread");
