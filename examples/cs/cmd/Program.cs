@@ -50,7 +50,7 @@ namespace cmd
 
                 NonBlockingConsole.WriteLine("Type :quit to exit");
                 var input = Console.ReadLine().ToLower().Trim();
-                while (input != ":quit" || !exit)
+                while (input != ":quit")
                 {
                     switch (input.Split(" ".ToCharArray())[0])
                     {
@@ -83,7 +83,10 @@ namespace cmd
                                 catch { }
                                 if (!string.IsNullOrWhiteSpace(instance))
                                 {
-                                    using (var sp = proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile))
+                                    var t = proxy.StartProxyAsync(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile);
+                                    t.Wait();
+                                    var sp = t.Result;
+                                    using (sp)
                                     {
                                         Console.WriteLine("Started");
                                         Console.WriteLine("Port: " + sp.GetPort());
@@ -158,7 +161,6 @@ namespace cmd
                             Console.WriteLine("       stop [instance]");
                             break;
                         case ":quit":
-                            exit = true;
                             break;
                         default:
                             NonBlockingConsole.WriteLine("Type :quit to exit");

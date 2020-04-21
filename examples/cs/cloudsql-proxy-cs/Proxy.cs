@@ -424,6 +424,9 @@ namespace cloudsql_proxy_cs
                 job.Join(1000);
             }
             jobs.Clear();
+            proxyCounter.Clear();
+            jobs.Clear();
+            tcss.Clear();
         }
 
 
@@ -521,11 +524,25 @@ namespace cloudsql_proxy_cs
         ///<inheritdoc cref="IDisposable"/> 
         public void Dispose()
         {
-            // destroy the delegate
-            statusCallbackReference = null;
-
             // instruct proxy to die
             StopAll();
+
+            // destroy the delegate
+            statusCallbackReference = null;
+            switch (Platform)
+            {
+                case "linux-64":
+                    StaticProxy.SetCallbackLinux(null);
+                    break;
+                case "win-64":
+                    StaticProxy.SetCallbackx64(null);
+                    break;
+                case "win-32":
+                    StaticProxy.SetCallbackx86(null);
+                    break;
+                default:
+                    throw new Exception("Invalid platform");
+            }
         }
     }
 }
