@@ -21,8 +21,14 @@ namespace cloudsql_proxy_cs
     /// </summary>
     public class ProxyInstance: IDisposable
     {
-        private string Instance { get; set; }
+        /// <summary>
+        /// The current instance attached to this proxy instance
+        /// </summary>
+        public string Instance { get; private set; }
         private Proxy Proxy { get; set; }
+
+        // Track whether Dispose has been called.
+        private bool disposed = false;
 
         /// <summary>
         /// Default constructor
@@ -58,7 +64,32 @@ namespace cloudsql_proxy_cs
         /// </summary>
         public void Dispose()
         {
-            Proxy?.StopProxy(Instance);
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// Dispose(bool disposing) executes in two distinct scenarios.
+        /// If disposing equals true, the method has been called directly
+        /// or indirectly by a user's code. Managed and unmanaged resources
+        /// can be disposed.
+        /// If disposing equals false, the method has been called by the
+        /// runtime from inside the finalizer and you should not reference
+        /// other objects. Only unmanaged resources can be disposed.
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            // Check to see if Dispose has already been called.
+            if (!this.disposed)
+            {
+                // Call the appropriate methods to clean up
+                // unmanaged resources here.
+                // If disposing is false,
+                // only the following code is executed.
+                Proxy?.StopProxy(Instance);
+
+                // Note disposing has been done.
+                disposed = true;
+            }
         }
     }
 }

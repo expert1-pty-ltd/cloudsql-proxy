@@ -64,8 +64,32 @@ namespace cmd
                                 catch { }
                                 if (!string.IsNullOrWhiteSpace(instance))
                                 {
-                                    proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile);
+                                    var r = proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile).Result;
                                     Console.WriteLine("Started");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Usage: start [instance]");
+                                }
+                            }
+                            break;
+                        case "test":
+                            {
+                                var instance = "";
+                                try
+                                {
+                                    instance = input.Split(" ".ToCharArray())[1];
+                                }
+                                catch { }
+                                if (!string.IsNullOrWhiteSpace(instance))
+                                {
+                                    using (var sp = proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile).Result)
+                                    {
+                                        Console.WriteLine("Started");
+                                        Console.WriteLine("Port: " + sp.GetPort());
+                                        Console.WriteLine("Status: " + sp.GetStatus());
+                                    }
+                                    Console.WriteLine("Stopped");
                                 }
                                 else
                                 {
@@ -125,6 +149,7 @@ namespace cmd
                                 {
                                     Console.WriteLine("Usage: stop [instance]");
                                 }
+                                Console.WriteLine("Proxy stopped");
                             }
                             break;
                         case "help":

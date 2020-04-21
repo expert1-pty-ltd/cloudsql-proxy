@@ -111,6 +111,23 @@ namespace cloudsql_proxy_cs
             tcss = new Dictionary<string, TaskCompletionSource<string>>();
             jobs = new Dictionary<string, Thread>();
             proxyCounter = new Dictionary<string, int>();
+
+            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
+
+            switch (Platform)
+            {
+                case "linux-64":
+                    StaticProxy.SetCallbackLinux(statusCallbackReference);
+                    break;
+                case "win-64":
+                    StaticProxy.SetCallbackx64(statusCallbackReference);
+                    break;
+                case "win-32":
+                    StaticProxy.SetCallbackx86(statusCallbackReference);
+                    break;
+                default:
+                    throw new Exception("Invalid platform");
+            }
         }
 
         /// <summary>
@@ -132,39 +149,19 @@ namespace cloudsql_proxy_cs
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
-        public ProxyInstance StartProxy(AuthenticationMethod authenticationMethod, in string instance, in string credentials)
+        public async Task<ProxyInstance> StartProxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
         {
             var proxyInstance = new ProxyInstance(ref _instance, instance);
 
             if (jobs.ContainsKey(instance))
             {
-                if (GetStatus(instance) != Status.Connected)
+                var rr = await tcss[instance].Task;
+                if (!string.IsNullOrWhiteSpace(rr))
                 {
-                    var waitResult = tcss[instance].Task.Result;
-                    if (!string.IsNullOrWhiteSpace(waitResult))
-                    {
-                        throw new Exception(waitResult);
-                    }
+                    throw new Exception(rr);
                 }
                 proxyCounter[instance]++;
                 return proxyInstance;
-            }
-
-            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
-
-            switch (Platform)
-            {
-                case "linux-64":
-                    StaticProxy.SetCallbackLinux(statusCallbackReference);
-                    break;
-                case "win-64":
-                    StaticProxy.SetCallbackx64(statusCallbackReference);
-                    break;
-                case "win-32":
-                    StaticProxy.SetCallbackx86(statusCallbackReference);
-                    break;
-                default:
-                    throw new Exception("Invalid platform");
             }
 
             tcss.Add(instance, new TaskCompletionSource<string>());
@@ -178,7 +175,7 @@ namespace cloudsql_proxy_cs
                 Credentials = string.Copy(credentials)
             });
 
-            var result = tcss[instance].Task.Result;
+            var result = await tcss[instance].Task;
             if (!string.IsNullOrWhiteSpace(result))
             {
                 throw new Exception(result);
@@ -338,18 +335,18 @@ namespace cloudsql_proxy_cs
                         default:
                             throw new Exception("Invalid platform");
                     }
+
+                    // wait for proxy to die
+                    jobs[instances].Join(1000);
+                    proxyCounter.Remove(instances);
+                    jobs.Remove(instances);
+                    tcss.Remove(instances);
                 }
                 else
                 {
                     // not connected yet, so port is unallocated.
                     throw new ProxyNotConnectedException();
                 }
-
-                // wait for proxy to die
-                jobs[instances].Join(5000);
-                proxyCounter.Remove(instances);
-                jobs.Remove(instances);
-                tcss.Remove(instances);
             }
 
         }
@@ -377,7 +374,7 @@ namespace cloudsql_proxy_cs
             // wait for proxy to die
             foreach (var job in jobs.Values)
             {
-                job.Join(5000);
+                job.Join(1000);
             }
             jobs.Clear();
         }

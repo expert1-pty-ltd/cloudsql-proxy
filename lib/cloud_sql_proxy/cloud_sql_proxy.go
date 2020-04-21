@@ -135,7 +135,6 @@ var activeInstances map[string]*ProxyInstance
 	// expose this globally so we can shut it down later - this is the
 	// channel that stops the program from ever exiting
 var connectionChannels map[string]chan proxy.Conn
-var sigShutdowns map[string]chan int
 var contexts map[string]context.Context
 
 
@@ -146,10 +145,24 @@ func main() {
 		logging.Infof("Initialising...")
 		activeInstances = make(map[string]*ProxyInstance, 0)
 		connectionChannels = make(map[string]chan proxy.Conn, 0)
-		sigShutdowns = make(map[string]chan int, 0)
 		contexts = make(map[string]context.Context, 0)
 
 		logging.Infof("Initialised")
+
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+		defer func() {
+			signal.Stop(signals)
+		}()
+
+		go func() {
+			select {
+			case <-signals:
+				logging.Infof("Received TERM signal")
+				StopAll()
+			return
+			}
+		}()
 
 		initialised = true
 	}
@@ -417,7 +430,7 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	}
 
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+	// ctx, cancel := context.WithCancel(ctx)
 
 	onGCE := metadata.OnGCE()
 	if err := checkFlags(onGCE); err != nil {
@@ -497,8 +510,6 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 	if refreshCfgThrottle < minimumRefreshCfgThrottle {
 		refreshCfgThrottle = minimumRefreshCfgThrottle
 	}
-	logging.Infof("Ready for new connections")
-	SetStatus(instance, "connected", "")
 
 	newInstance.proxyClient = &proxy.Client{
 		Port:           sqlPort,
@@ -513,32 +524,16 @@ func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
 		RefreshCfgThrottle: refreshCfgThrottle,
 	}
 
-	sigShutdowns[instance] = make(chan int, 1)
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
-	defer func() {
-		signal.Stop(signals)
-		cancel()
-	}()
-
 	go func() {
 		select {
-		case <-signals:
-			logging.Infof("Received TERM signal")
-			for instance, _ := range activeInstances {
-				ShutdownProxy(instance)
-			}
-			cancel()
-		case <- sigShutdowns[instance]:
-			logging.Infof("shutdown signal sent: %v", instance)
-			ShutdownProxy(instance)
-			cancel()
 		case <-ctx.Done():
 			logging.Infof("context done")
 		}
 		return
 	}()
+	
+	logging.Infof("Ready for new connections")
+	SetStatus(instance, "connected", "")
 
 	newInstance.proxyClient.Run(newInstance.connSrc)
 
@@ -557,14 +552,14 @@ func StopProxy(i *C.char) {
 
 	// send shutdown
 	logging.Infof("Sending shutdown: %v", instance)
-	sigShutdowns[instance] <- 1
+	ShutdownProxy(instance)
 }
 
 //export StopAll
 func StopAll() {
 	logging.Infof("Sending shutdown all")
 	for instance, _ := range activeInstances {
-		sigShutdowns[instance] <- 1
+		ShutdownProxy(instance)
 	}
 }
 
@@ -585,10 +580,10 @@ func ShutdownProxy(instance string) {
 	}
 
 	// close connection channel
-	// this is exposed in proxy.go
 	close(connectionChannels[instance])
 
-	SetStatus(instance, "disconnected", "")
+	delete(connectionChannels, instance);
+	delete(activeInstances, instance);
 }
 
 //export GetStatus
