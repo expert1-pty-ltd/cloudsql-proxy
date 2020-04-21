@@ -64,7 +64,7 @@ namespace cmd
                                 catch { }
                                 if (!string.IsNullOrWhiteSpace(instance))
                                 {
-                                    var r = proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile).Result;
+                                    proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile);
                                     Console.WriteLine("Started");
                                 }
                                 else
@@ -83,7 +83,7 @@ namespace cmd
                                 catch { }
                                 if (!string.IsNullOrWhiteSpace(instance))
                                 {
-                                    using (var sp = proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile).Result)
+                                    using (var sp = proxy.StartProxy(cloudsql_proxy_cs.AuthenticationMethod.CredentialFile, instance, tokenFile))
                                     {
                                         Console.WriteLine("Started");
                                         Console.WriteLine("Port: " + sp.GetPort());

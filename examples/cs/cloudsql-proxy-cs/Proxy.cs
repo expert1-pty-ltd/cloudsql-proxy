@@ -149,7 +149,7 @@ namespace cloudsql_proxy_cs
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
-        public async Task<ProxyInstance> StartProxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
+        public async Task<ProxyInstance> StartProxyAsync(AuthenticationMethod authenticationMethod, string instance, string credentials)
         {
             var proxyInstance = new ProxyInstance(ref _instance, instance);
 
@@ -176,6 +176,53 @@ namespace cloudsql_proxy_cs
             });
 
             var result = await tcss[instance].Task;
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                throw new Exception(result);
+            }
+            return proxyInstance;
+        }
+
+        /// <summary>
+        /// Start the proxy manually. This method will block until the proxy is connected.
+        /// </summary>
+        /// <param name="authenticationMethod">authentication method</param>
+        /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
+        /// <param name="credentials">credential file or json</param>
+        public ProxyInstance StartProxy(AuthenticationMethod authenticationMethod, string instance, string credentials)
+        {
+            var proxyInstance = new ProxyInstance(ref _instance, instance);
+
+            Task<string> task;
+            string result;
+
+            if (jobs.ContainsKey(instance))
+            {
+                task = tcss[instance].Task;
+                task.Wait();
+                result = task.Result;
+                if (!string.IsNullOrWhiteSpace(result))
+                {
+                    throw new Exception(result);
+                }
+                proxyCounter[instance]++;
+                return proxyInstance;
+            }
+
+            tcss.Add(instance, new TaskCompletionSource<string>());
+            jobs.Add(instance, new Thread(RunJob));
+            proxyCounter.Add(instance, 1);
+            jobs[instance].Start(new JobParams()
+            {
+                Platform = string.Copy(Platform),
+                AuthenticationMethod = authenticationMethod,
+                Instance = string.Copy(instance),
+                Credentials = string.Copy(credentials)
+            });
+
+            task = tcss[instance].Task;
+            task.Wait();
+            result = task.Result;
             if (!string.IsNullOrWhiteSpace(result))
             {
                 throw new Exception(result);
