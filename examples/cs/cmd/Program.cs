@@ -160,6 +160,9 @@ namespace cmd
                             Console.WriteLine("       status [instance]");
                             Console.WriteLine("       stop [instance]");
                             break;
+                        case "dispose":
+                            proxy?.Dispose();
+                            break;
                         case ":quit":
                             break;
                         default:

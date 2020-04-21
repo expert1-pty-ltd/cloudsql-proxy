@@ -423,13 +423,10 @@ namespace cloudsql_proxy_cs
             {
                 job.Join(1000);
             }
-            jobs.Clear();
             proxyCounter.Clear();
             jobs.Clear();
             tcss.Clear();
         }
-
-
 
         /// <summary>
         /// Gets the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy.
@@ -526,23 +523,6 @@ namespace cloudsql_proxy_cs
         {
             // instruct proxy to die
             StopAll();
-
-            // destroy the delegate
-            statusCallbackReference = null;
-            switch (Platform)
-            {
-                case "linux-64":
-                    StaticProxy.SetCallbackLinux(null);
-                    break;
-                case "win-64":
-                    StaticProxy.SetCallbackx64(null);
-                    break;
-                case "win-32":
-                    StaticProxy.SetCallbackx86(null);
-                    break;
-                default:
-                    throw new Exception("Invalid platform");
-            }
         }
     }
 }

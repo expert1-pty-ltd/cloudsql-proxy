@@ -598,6 +598,13 @@ func SetCallback(cb C.callbackFunc) {
 	// the function pointer comes from the C# wrapper
 	g_cb = cb
 }
+
+//export RemoveCallback
+func RemoveCallback() {
+	// This function removes a callback function
+	g_cb = nil
+}
+
 /*
 * This GO function is used to set the state of the proxy connection.
 * It calls invokeFunctionPointer from extern.c, it passes it the stored function pointer
@@ -605,5 +612,7 @@ func SetCallback(cb C.callbackFunc) {
 */
 func SetStatus(i string, s string, e string) {
 	activeInstances[i].status = s
-	C.invokeFunctionPointer(g_cb, C.CString(i), C.CString(s), C.CString(e));
+	if (g_cb != nil) {
+		C.invokeFunctionPointer(g_cb, C.CString(i), C.CString(s), C.CString(e));
+	}
 }
