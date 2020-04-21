@@ -53,10 +53,6 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        private AuthenticationMethod AuthenticationMethod { get; set; }
-        private string Instance { get; set; }
-        private string Credentials { get; set; }
-
         private StaticProxy.StatusCallback statusCallbackReference;
         private Dictionary<string, TaskCompletionSource<string>> tcss;
         private Dictionary<string, Thread> jobs;
@@ -136,8 +132,10 @@ namespace cloudsql_proxy_cs
         /// <param name="authenticationMethod">authentication method</param>
         /// <param name="instance">instance; to bind any available port use port 0. You can find the port number using GetPort()</param>
         /// <param name="credentials">credential file or json</param>
-        public void StartProxy(AuthenticationMethod authenticationMethod, in string instance, in string credentials)
+        public ProxyInstance StartProxy(AuthenticationMethod authenticationMethod, in string instance, in string credentials)
         {
+            var proxyInstance = new ProxyInstance(ref _instance, instance);
+
             if (jobs.ContainsKey(instance))
             {
                 if (GetStatus(instance) != Status.Connected)
@@ -149,12 +147,9 @@ namespace cloudsql_proxy_cs
                     }
                 }
                 proxyCounter[instance]++;
-                return;
+                return proxyInstance;
             }
 
-            AuthenticationMethod = authenticationMethod;
-            Instance = string.Copy(instance);
-            Credentials = string.Copy(credentials);
             statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
 
             switch (Platform)
@@ -173,15 +168,22 @@ namespace cloudsql_proxy_cs
             }
 
             tcss.Add(instance, new TaskCompletionSource<string>());
-            jobs.Add(instance, new Thread(new ThreadStart(RunJob)));
+            jobs.Add(instance, new Thread(RunJob));
             proxyCounter.Add(instance, 1);
-            jobs[instance].Start();
+            jobs[instance].Start(new JobParams()
+            {
+                Platform = string.Copy(Platform),
+                AuthenticationMethod = authenticationMethod,
+                Instance = string.Copy(instance),
+                Credentials = string.Copy(credentials)
+            });
 
             var result = tcss[instance].Task.Result;
             if (!string.IsNullOrWhiteSpace(result))
             {
                 throw new Exception(result);
             }
+            return proxyInstance;
         }
 
         /// <summary>
@@ -421,22 +423,24 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        private void RunJob()
+        private void RunJob(object p)
         {
-            switch (AuthenticationMethod)
+            var jobParam = ((JobParams)p);
+
+            switch (jobParam.AuthenticationMethod)
             {
                 case AuthenticationMethod.CredentialFile:
-                    StartProxyWithCredentialFile(Instance, Credentials);
+                    StartProxyWithCredentialFile(jobParam.Platform, jobParam.Instance, jobParam.Credentials);
                     break;
                 case AuthenticationMethod.JSON:
-                    StartProxyWithCredentialJson(Instance, Credentials);
+                    StartProxyWithCredentialJson(jobParam.Platform, jobParam.Instance, jobParam.Credentials);
                     break;
             }
         }
 
-        private void StartProxyWithCredentialFile(string instances, string tokenFile)
+        private void StartProxyWithCredentialFile(string platform, string instances, string tokenFile)
         {
-            switch (Platform)
+            switch (platform)
             {
                 case "linux-64":
                     StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
@@ -452,9 +456,9 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        private void StartProxyWithCredentialJson(string instances, string tokenJson)
+        private void StartProxyWithCredentialJson(string platform, string instances, string tokenJson)
         {
-            switch (Platform)
+            switch (platform)
             {
                 case "linux-64":
                     StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson));
