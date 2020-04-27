@@ -39,7 +39,9 @@ proxy.StartProxy(AuthenticationMethod.CredentialFile, instance, tokenFile);
 ```
 
 #### Stop the Proxy
-Methods are exposed to Stop a specific instance, or Stop All instances.
+Methods are exposed to Stop a specific instance, or Stop All instances. 
+The StopProxy() method maintains a counter internally for the number of active calls to start the proxy. This helps keep the connection alive when multiple
+callers are making use of it. It is particularly helpful when implementing a Using pattern.
 ```
 proxy.StopProxy(instance);
 ```
@@ -53,7 +55,8 @@ proxy.Dispose();
 ```
 
 #### Helpful Methods
-GetPort() returns the port of the specified proxy instance. It is recommended that you set the port to zero when starting the proxy and use the GetPort method to configure your DB connection.
+GetPort() returns the port of the specified proxy instance. It is recommended that you set the port to zero when starting
+the proxy and use the GetPort method to configure your DB connection.
 ```
 Console.WriteLine($"Port: {proxy.GetPort(instance)}");
 ```
@@ -67,7 +70,23 @@ Console.WriteLine($"Status: {proxy.GetStatus(instance)}");
 #### IDisposable
 The Proxy Wrapper implements IDisposable. If it is disposed, then it will call StopAll. This will close all proxy connections.
 
-StartProxy() and StartProxyAsync return a ProxyInstance object, which also implements IDisposable. It will close its individual proxy instance connection when disposed.
+StartProxy() and StartProxyAsync return a ProxyInstance object, which also implements IDisposable. It will close its individual
+proxy instance connection when disposed. This allows the following usage pattern.
+```
+using (var i = await p.StartProxy(AuthenticationMethod.JSON, instance, credentials)
+{
+	// wait for connection
+	int port = i.GetPort();
+	log.Add($"Proxy started on port {port}");
+
+	// get status
+	var status = i.GetStatus();
+	log.Add($"Proxy status: {status}");
+
+	// log closing
+	log.Add($"Closing proxy");
+}
+```
 
 ## Building cloud_sql_proxy binaries
 
