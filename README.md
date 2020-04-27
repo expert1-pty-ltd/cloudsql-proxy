@@ -31,15 +31,15 @@ proxy.OnStatusChanged += (object sender, StatusEventArgs status) =>
 };
 ```
 
-#### Start/Stop the Proxy
-Methods are exposed to Start/Stop a specific instance, or Stop All instances.
+#### Start the Proxy
+To start and Instance.
 
-To Start the proxy.
 ```
 proxy.StartProxy(AuthenticationMethod.CredentialFile, instance, tokenFile);
 ```
 
-To Stop the Proxy
+#### Stop the Proxy
+Methods are exposed to Stop a specific instance, or Stop All instances.
 ```
 proxy.StopProxy(instance);
 ```
