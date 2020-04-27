@@ -33,13 +33,35 @@ proxy.OnStatusChanged += (object sender, StatusEventArgs status) =>
 
 #### Start/Stop the Proxy
 Methods are exposed to Start/Stop a specific instance, or Stop All instances.
+
+To Start the proxy.
 ```
 proxy.StartProxy(AuthenticationMethod.CredentialFile, instance, tokenFile);
 ```
 
+To Stop the Proxy
+```
+proxy.StopProxy(instance);
+```
+or 
+```
+proxy.StopAll();
+```
+or
+```
+proxy.Dispose();
+```
+
 #### Helpful Methods
 GetPort() returns the port of the specified proxy instance. It is recommended that you set the port to zero when starting the proxy and use the GetPort method to configure your DB connection.
+```
+Console.WriteLine($"Port: {proxy.GetPort(instance)}");
+```
+
 GetStatus() returns the current status of the proxy.
+```
+Console.WriteLine($"Status: {proxy.GetStatus(instance)}");
+```
 
 
 #### IDisposable
