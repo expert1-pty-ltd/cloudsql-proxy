@@ -73,7 +73,7 @@ The Proxy Wrapper implements IDisposable. If it is disposed, then it will call S
 StartProxy() and StartProxyAsync return a ProxyInstance object, which also implements IDisposable. It will close its individual
 proxy instance connection when disposed. This allows the following usage pattern.
 ```
-using (var i = await p.StartProxy(AuthenticationMethod.JSON, instance, credentials)
+using (var i = await Proxy.GetInstance.StartProxy(AuthenticationMethod.JSON, instance, credentials)
 {
 	// wait for connection
 	int port = i.GetPort();
