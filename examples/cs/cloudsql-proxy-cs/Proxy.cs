@@ -56,7 +56,6 @@ namespace cloudsql_proxy_cs
 
         private StaticProxy.StatusCallback statusCallbackReference;
         private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
-        private ConcurrentDictionary<string, Thread> jobs;
         private ConcurrentDictionary<string, int> proxyCounter;
 
         /// <summary>
@@ -110,7 +109,6 @@ namespace cloudsql_proxy_cs
         private Proxy()
         {
             tcss = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
-            jobs = new ConcurrentDictionary<string, Thread>();
             proxyCounter = new ConcurrentDictionary<string, int>();
 
             statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
@@ -154,7 +152,7 @@ namespace cloudsql_proxy_cs
         {
             var proxyInstance = new ProxyInstance(ref _instance, instance);
 
-            if (jobs.ContainsKey(instance))
+            if (tcss.ContainsKey(instance))
             {
                 var rr = await tcss[instance].Task;
                 if (!string.IsNullOrWhiteSpace(rr))
@@ -166,9 +164,9 @@ namespace cloudsql_proxy_cs
             }
 
             tcss.TryAdd(instance, new TaskCompletionSource<string>());
-            jobs.TryAdd(instance, new Thread(RunJob));
             proxyCounter.TryAdd(instance, 1);
-            jobs[instance].Start(new JobParams()
+            var thread = new Thread(RunJob);
+            thread.Start(new JobParams()
             {
                 Platform = string.Copy(Platform),
                 AuthenticationMethod = authenticationMethod,
@@ -197,7 +195,7 @@ namespace cloudsql_proxy_cs
             Task<string> task;
             string result;
 
-            if (jobs.ContainsKey(instance))
+            if (tcss.ContainsKey(instance))
             {
                 task = tcss[instance].Task;
                 task.Wait();
@@ -211,9 +209,9 @@ namespace cloudsql_proxy_cs
             }
 
             tcss.TryAdd(instance, new TaskCompletionSource<string>());
-            jobs.TryAdd(instance, new Thread(RunJob));
+            var thread = new Thread(RunJob);
             proxyCounter.TryAdd(instance, 1);
-            jobs[instance].Start(new JobParams()
+            thread.Start(new JobParams()
             {
                 Platform = string.Copy(Platform),
                 AuthenticationMethod = authenticationMethod,
@@ -324,7 +322,7 @@ namespace cloudsql_proxy_cs
         /// <returns>Port number</returns>
         public int GetPort(string instances)
         {
-            if (!jobs.ContainsKey(instances))
+            if (!tcss.ContainsKey(instances))
             {
                 throw new InvalidProxyException($"The proxy instance {instances} has not been started");
             }
@@ -361,7 +359,7 @@ namespace cloudsql_proxy_cs
         /// </summary>
         public void StopProxy(string instances)
         {
-            if (!jobs.ContainsKey(instances))
+            if (!tcss.ContainsKey(instances))
             {
                 return;
             }
@@ -390,10 +388,7 @@ namespace cloudsql_proxy_cs
                             throw new Exception("Invalid platform");
                     }
 
-                    // wait for proxy to die
-                    jobs[instances].Join(1000);
                     proxyCounter.TryRemove(instances, out int outVal1);
-                    jobs.TryRemove(instances, out Thread outVal2);
                     tcss.TryRemove(instances, out TaskCompletionSource<string> outVal3);
                 }
                 else
@@ -425,13 +420,7 @@ namespace cloudsql_proxy_cs
                     throw new Exception("Invalid platform");
             }
 
-            // wait for proxy to die
-            foreach (var job in jobs.Values)
-            {
-                job.Join(1000);
-            }
             proxyCounter.Clear();
-            jobs.Clear();
             tcss.Clear();
         }
 
@@ -440,7 +429,7 @@ namespace cloudsql_proxy_cs
         /// </summary>
         public Status GetStatus(string instances)
         {
-            if (!jobs.ContainsKey(instances))
+            if (!tcss.ContainsKey(instances))
             {
                 throw new InvalidProxyException($"The proxy instance {instances} has not been started");
             }
