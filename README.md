@@ -9,32 +9,83 @@ To build from source, ensure you have [go installed](https://golang.org/doc/inst
 
 ## To use from third party applications
 
-### Nuget
+### Install via Nuget
 
-For convienience the Package is available via Nuget with [Installation Instructions](https://www.nuget.org/packages/cloudsql-proxy-cs/1.0.1).
-
-### Exposed methods
-
-- char* Echo(char* message);
-  - echo's back whatever is passed in message. Message is prepended by `From DLL:`. E.g. passing `1234` returns `From DLL: 1234`
-- StartProxy(char* instances, char* tokenFile);
-  - start the proxy. Method blocks until proxy is shut down.
-- StopProxy();
-  - stop the proxy. Will cause StartProxy to exit and return.
+For convienience the Package is available via Nuget with [Installation Instructions](https://www.nuget.org/packages/cloudsql-proxy-cs).
 
 ### Using library (C#)
 
-This is a basic example of declaring methods that can be called from C#. The DLL must be in the same path as the C# executable.
+The Proxy uses a singleton class to access functionality of the proxy. As proxy connections persist in a separate thread. 
+
+#### Get the Proxy Singleton
+```
+var proxy =  Proxy.GetInstance();
+```
+
+#### Status Change Event
+There is also an event which can be subscribed to for changes to the status.
+```
+proxy.OnStatusChanged += (object sender, StatusEventArgs status) =>
+{
+	Console.WriteLine($"Status from instance: {status.Instance}: {status.Status}");
+};
+```
+
+#### Start the Proxy
+To start and Instance.
 
 ```
-[DllImport("cloud_sql_proxy.dll", CharSet = CharSet.Unicode. CallingConvention = CallingConvention.StdCall)]
-public extern static IntPtr Echo(byte[] message);
+proxy.StartProxy(AuthenticationMethod.CredentialFile, instance, tokenFile);
+```
 
-[DllImport("cloud_sql_proxy.dll", CharSet = CharSet.Unicode. CallingConvention = CallingConvention.StdCall)]
-public extern static void StartProxy(byte[] instances, byte[] tokenFile);
+#### Stop the Proxy
+Methods are exposed to Stop a specific instance, or Stop All instances. 
+The StopProxy() method maintains a counter internally for the number of active calls to start the proxy. This helps keep the connection alive when multiple
+callers are making use of it. It is particularly helpful when implementing a Using pattern.
+```
+proxy.StopProxy(instance);
+```
+or 
+```
+proxy.StopAll();
+```
+or
+```
+proxy.Dispose();
+```
 
-[DllImport("cloud_sql_proxy.dll", CharSet = CharSet.Unicode. CallingConvention = CallingConvention.StdCall)]
-public extern static void StopProxy();
+#### Helpful Methods
+GetPort() returns the port of the specified proxy instance. It is recommended that you set the port to zero when starting
+the proxy and use the GetPort method to configure your DB connection.
+```
+Console.WriteLine($"Port: {proxy.GetPort(instance)}");
+```
+
+GetStatus() returns the current status of the proxy.
+```
+Console.WriteLine($"Status: {proxy.GetStatus(instance)}");
+```
+
+
+#### IDisposable
+The Proxy Wrapper implements IDisposable. If it is disposed, then it will call StopAll. This will close all proxy connections.
+
+StartProxy() and StartProxyAsync return a ProxyInstance object, which also implements IDisposable. It will close its individual
+proxy instance connection when disposed. This allows the following usage pattern.
+```
+using (var i = await Proxy.GetInstance.StartProxy(AuthenticationMethod.JSON, instance, credentials)
+{
+	// wait for connection
+	int port = i.GetPort();
+	log.Add($"Proxy started on port {port}");
+
+	// get status
+	var status = i.GetStatus();
+	log.Add($"Proxy status: {status}");
+
+	// log closing
+	log.Add($"Closing proxy");
+}
 ```
 
 ## Building cloud_sql_proxy binaries
