@@ -363,7 +363,7 @@ namespace cloudsql_proxy_cs
         {
             if (!jobs.ContainsKey(instances))
             {
-                throw new InvalidProxyException($"The proxy instance {instances} has not been started");
+                return;
             }
 
             // only shut down once we know we don't have any more connections
