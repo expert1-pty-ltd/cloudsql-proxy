@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -54,9 +55,9 @@ namespace cloudsql_proxy_cs
         }
 
         private StaticProxy.StatusCallback statusCallbackReference;
-        private Dictionary<string, TaskCompletionSource<string>> tcss;
-        private Dictionary<string, Thread> jobs;
-        private Dictionary<string, int> proxyCounter;
+        private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
+        private ConcurrentDictionary<string, Thread> jobs;
+        private ConcurrentDictionary<string, int> proxyCounter;
 
         /// <summary>
         /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
@@ -108,9 +109,9 @@ namespace cloudsql_proxy_cs
         /// </summary>
         private Proxy()
         {
-            tcss = new Dictionary<string, TaskCompletionSource<string>>();
-            jobs = new Dictionary<string, Thread>();
-            proxyCounter = new Dictionary<string, int>();
+            tcss = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
+            jobs = new ConcurrentDictionary<string, Thread>();
+            proxyCounter = new ConcurrentDictionary<string, int>();
 
             statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
 
@@ -164,9 +165,9 @@ namespace cloudsql_proxy_cs
                 return proxyInstance;
             }
 
-            tcss.Add(instance, new TaskCompletionSource<string>());
-            jobs.Add(instance, new Thread(RunJob));
-            proxyCounter.Add(instance, 1);
+            tcss.TryAdd(instance, new TaskCompletionSource<string>());
+            jobs.TryAdd(instance, new Thread(RunJob));
+            proxyCounter.TryAdd(instance, 1);
             jobs[instance].Start(new JobParams()
             {
                 Platform = string.Copy(Platform),
@@ -209,9 +210,9 @@ namespace cloudsql_proxy_cs
                 return proxyInstance;
             }
 
-            tcss.Add(instance, new TaskCompletionSource<string>());
-            jobs.Add(instance, new Thread(RunJob));
-            proxyCounter.Add(instance, 1);
+            tcss.TryAdd(instance, new TaskCompletionSource<string>());
+            jobs.TryAdd(instance, new Thread(RunJob));
+            proxyCounter.TryAdd(instance, 1);
             jobs[instance].Start(new JobParams()
             {
                 Platform = string.Copy(Platform),
@@ -259,7 +260,10 @@ namespace cloudsql_proxy_cs
                         Status = Status.Connected
                     });
                     OnConnected?.Invoke(this, instanceStr);
-                    tcss[instanceStr]?.TrySetResult("");
+                    if (tcss.ContainsKey(instanceStr))
+                    {
+                        tcss[instanceStr]?.TrySetResult("");
+                    }
                     break;
                 case "error":
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
@@ -272,7 +276,10 @@ namespace cloudsql_proxy_cs
                         Instance = instanceStr,
                         ErrorMessage = errorStr
                     });
-                    tcss[instanceStr]?.TrySetResult(errorStr);
+                    if (tcss.ContainsKey(instanceStr))
+                    {
+                        tcss[instanceStr]?.TrySetResult(errorStr);
+                    }
                     break;
                 default:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
@@ -385,9 +392,9 @@ namespace cloudsql_proxy_cs
 
                     // wait for proxy to die
                     jobs[instances].Join(1000);
-                    proxyCounter.Remove(instances);
-                    jobs.Remove(instances);
-                    tcss.Remove(instances);
+                    proxyCounter.TryRemove(instances, out int outVal1);
+                    jobs.TryRemove(instances, out Thread outVal2);
+                    tcss.TryRemove(instances, out TaskCompletionSource<string> outVal3);
                 }
                 else
                 {
