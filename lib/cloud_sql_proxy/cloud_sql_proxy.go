@@ -569,7 +569,10 @@ func ShutdownProxy(instance string) {
 	// shutdown connections
 	logging.Infof("Close connections")
 	activeInstances[instance].proxyClient.Conns.Close()
-	activeInstances[instance].proxyClient.Shutdown(termTimeout)
+	err := activeInstances[instance].proxyClient.Shutdown(termTimeout)
+	if err != nil {
+		logging.Errorf("Error during SIGTERM shutdown: %v", err)
+	}
 
 	// shutdown listeners
 	logging.Infof("Close listeners")
