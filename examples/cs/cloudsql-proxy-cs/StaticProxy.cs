@@ -104,11 +104,11 @@ namespace cloudsql_proxy_cs
         internal extern static IntPtr Echox86(byte[] message);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
         internal extern static void StartProxyWithCredentialFilex86(byte[] instances, byte[] tokenFile);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson", SetLastError = true)]
         internal extern static void StartProxyWithCredentialJsonx86(byte[] instances, byte[] tokenJson);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
