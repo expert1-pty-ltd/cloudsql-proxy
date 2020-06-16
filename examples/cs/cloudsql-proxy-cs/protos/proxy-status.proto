@@ -1,0 +1,15 @@
+﻿syntax = "proto3";
+
+service ProxyStatus {
+  rpc SetProxyStatus (ProxyStatusRequest) returns (ProxyStatusReply);
+}
+
+message ProxyStatusRequest {
+  string name = 1;
+  string status = 2;
+  string error = 3;
+}
+
+message ProxyStatusReply {
+    bool success = 1;
+}

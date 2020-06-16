@@ -45,6 +45,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/GoogleCloudPlatform/cloudsql-proxy/logging"
 	"github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/certs"
@@ -58,9 +59,12 @@ import (
 	"golang.org/x/oauth2"
 	goauth "golang.org/x/oauth2/google"
 	sqladmin "google.golang.org/api/sqladmin/v1beta4"
+	pb "github.com/expert1-pty-ltd/cloudsql-proxy/proxy_status"
 )
 
-// #include "extern.h"
+/*
+#include <stdlib.h>
+*/
 import "C"
 
 // we need to include the c code from seperate files or cgo complains when compiling
@@ -94,7 +98,7 @@ var (
 
 	proxyClient proxy.Client
 
-	g_cb C.callbackFunc
+	proxyStatusClient pb.ProxyStatusClient
 
 	// port that connects to sql server
 	sqlPort = 3307
@@ -146,6 +150,14 @@ func main() {
 		activeInstances = make(map[string]*ProxyInstance, 0)
 		connectionChannels = make(map[string]chan proxy.Conn, 0)
 		contexts = make(map[string]context.Context, 0)
+
+		conn, err := grpc.Dial("localhost:50001", grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			logging.Errorf("did not connect: %v", err)
+		}
+		defer conn.Close()
+
+		proxyStatusClient := pb.NewProxyStatusClient(conn)
 
 		logging.Infof("Initialised")
 
@@ -237,7 +249,7 @@ func authenticatedClientFromPath(ctx context.Context, f string) (*http.Client, e
 
 	cred, err := goauth.CredentialsFromJSON(ctx, all, proxy.SQLScope)
 	if err != nil {
-		return nil, fmt.Errorf("invalid json file %q: %v", f, err)
+		return nil, fmt.Errorf("invalid json string %q: %v", f, err)
 	}
 	logging.Infof("using credential file for authentication; path=%q", f)
 	return oauth2.NewClient(ctx, cred.TokenSource), nil
@@ -359,24 +371,34 @@ func Echo(message *C.char)(*C.char) {
 
 //export StartProxyWithCredentialFile
 func StartProxyWithCredentialFile(_instances *C.char, _tokenFile *C.char) {
-	StartProxy(_instances, _tokenFile, C.CString(""))
+	var goInstances = C.GoString(_instances);
+	var gotokenFile = C.GoString(_tokenFile);
+	StartProxy(goInstances, gotokenFile, "")
 }
 
 //export StartProxyWithCredentialJson
 func StartProxyWithCredentialJson(_instances *C.char, _tokenJson *C.char) {
-	StartProxy(_instances, C.CString(""), _tokenJson)
+	var goInstances = C.GoString(_instances);
+	var goTokenJson = C.GoString(_tokenJson);
+	StartProxy(goInstances, "", goTokenJson)
 }
 
-func StartProxy(_instances *C.char, _tokenFile *C.char, _tokenJson *C.char) {
+func StartProxy(_instances string, _tokenFile string, _tokenJson string) {
 	main()
 
-	instance := C.GoString(_instances)
+	instance := _instances
 
 	newInstance := new(ProxyInstance)
 	newInstance.instances = instance
-	newInstance.tokenFile = C.GoString(_tokenFile)
-	newInstance.tokenJson = C.GoString(_tokenJson)
+	newInstance.tokenFile = _tokenFile
+	newInstance.tokenJson = _tokenJson
 	newInstance.status = "connecting"
+
+	if (_tokenFile != "") {
+		logging.Infof("Starting using file")
+	} else {
+		logging.Infof("Starting using json")
+	}
 
 	activeInstances[instance] = newInstance
 
@@ -592,30 +614,40 @@ func ShutdownProxy(instance string) {
 //export GetStatus
 func GetStatus(i *C.char)(*C.char)  {
 	instance := C.GoString(i)
-	return C.CString(activeInstances[instance].status)
-}
-
-//export SetCallback
-func SetCallback(cb C.callbackFunc) {
-	// This function stores the callback function pointer above as a global variable
-	// the function pointer comes from the C# wrapper
-	g_cb = cb
-}
-
-//export RemoveCallback
-func RemoveCallback() {
-	// This function removes a callback function
-	g_cb = nil
+	var cStatus = C.CString(activeInstances[instance].status)
+	defer C.free(unsafe.Pointer(cStatus))
+	return cStatus;
 }
 
 /*
 * This GO function is used to set the state of the proxy connection.
-* It calls invokeFunctionPointer from extern.c, it passes it the stored function pointer
-* of the delegate from the C# wrapper
+* It will do a gRPC call to the server running in the nuget dll
 */
 func SetStatus(i string, s string, e string) {
 	activeInstances[i].status = s
-	if (g_cb != nil) {
-		C.invokeFunctionPointer(g_cb, C.CString(i), C.CString(s), C.CString(e));
+
+	if (proxyStatusClient != nil) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		r, err := c.SetProxyStatus(ctx, &pb.ProxyStatusRequest { Name: i, Status: s, Error: e })
+		if err != nil {
+			log.Fatalf("could not set status: %v", err)
+		}
 	}
+	// if (g_cb != nil) {
+	// 	logging.Infof("Sending status %s", s)
+
+	// 	var ci *C.char = C.CString(i)
+	// 	defer C.free(unsafe.Pointer(ci))
+
+	// 	var cs *C.char = C.CString(s)
+	// 	defer C.free(unsafe.Pointer(cs))
+
+	// 	var ce *C.char = C.CString(e)
+	// 	defer C.free(unsafe.Pointer(ce))
+
+	// 	C.invokeFunctionPointer(g_cb, ci, cs, ce);
+
+	// 	logging.Infof("Sent status %s", s)
+	// }
 }

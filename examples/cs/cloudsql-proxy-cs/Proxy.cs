@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -54,7 +55,8 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        private StaticProxy.StatusCallback statusCallbackReference;
+        //private static StaticProxy.StatusCallback statusCallbackReference;
+
         private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
         private ConcurrentDictionary<string, int> proxyCounter;
 
@@ -111,22 +113,28 @@ namespace cloudsql_proxy_cs
             tcss = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
             proxyCounter = new ConcurrentDictionary<string, int>();
 
-            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
-
-            switch (Platform)
+            var server = new Server
             {
-                case "linux-64":
-                    StaticProxy.SetCallbackLinux(statusCallbackReference);
-                    break;
-                case "win-64":
-                    StaticProxy.SetCallbackx64(statusCallbackReference);
-                    break;
-                case "win-32":
-                    StaticProxy.SetCallbackx86(statusCallbackReference);
-                    break;
-                default:
-                    throw new Exception("Invalid platform");
-            }
+                Services = { ProxyStatus.BindService(new ProxyStatusImpl()) },
+                Ports = { new ServerPort("localhost", 50001, ServerCredentials.Insecure) }
+            };
+
+            //statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
+
+            //switch (Platform)
+            //{
+            //    case "linux-64":
+            //        StaticProxy.SetCallbackLinux(statusCallbackReference);
+            //        break;
+            //    case "win-64":
+            //        StaticProxy.SetCallbackx64(statusCallbackReference);
+            //        break;
+            //    case "win-32":
+            //        StaticProxy.SetCallbackx86(statusCallbackReference);
+            //        break;
+            //    default:
+            //        throw new Exception("Invalid platform");
+            //}
         }
 
         /// <summary>
@@ -235,57 +243,111 @@ namespace cloudsql_proxy_cs
         /// <param name="instance"></param>
         /// <param name="status"></param>
         /// <param name="error"></param>
-        private void SetStatus(IntPtr instance, IntPtr status, IntPtr error)
+        internal void SetStatus(string instance, string status, string error)
         {
             // decode message from bytes
-            var instanceStr = Marshal.PtrToStringAnsi(instance);
-            var statusStr = Marshal.PtrToStringAnsi(status);
-            var errorStr = Marshal.PtrToStringAnsi(error);
+            //var instanceStr = Marshal.PtrToStringAnsi(instance);
+            //var statusStr = Marshal.PtrToStringAnsi(status);
+            //var errorStr = Marshal.PtrToStringAnsi(error);
 
-            switch (statusStr)
+            switch (status)
             {
                 case "connecting":
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
-                        Instance = instanceStr,
+                        Instance = instance,
                         Status = Status.Connecting
                     });
                     break;
                 case "connected":
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
-                        Instance = instanceStr,
+                        Instance = instance,
                         Status = Status.Connected
                     });
-                    OnConnected?.Invoke(this, instanceStr);
-                    if (tcss.ContainsKey(instanceStr))
+                    OnConnected?.Invoke(this, instance);
+                    if (tcss.ContainsKey(instance))
                     {
-                        tcss[instanceStr]?.TrySetResult("");
+                        tcss[instance]?.TrySetResult("");
                     }
                     break;
                 case "error":
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
-                        Instance = instanceStr,
+                        Instance = instance,
                         Status = Status.Error
                     });
                     OnError?.Invoke(this, new ErrorEventArgs()
                     {
-                        Instance = instanceStr,
-                        ErrorMessage = errorStr
+                        Instance = instance,
+                        ErrorMessage = error
                     });
-                    if (tcss.ContainsKey(instanceStr))
+                    if (tcss.ContainsKey(instance))
                     {
-                        tcss[instanceStr]?.TrySetResult(errorStr);
+                        tcss[instance]?.TrySetResult(error);
                     }
                     break;
                 default:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
-                        Instance = instanceStr,
+                        Instance = instance,
                         Status = Status.Disconnected
                     });
-                    OnDisconnected?.Invoke(this, instanceStr);
+                    OnDisconnected?.Invoke(this, instance);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Implements SetConnected delegate which is passed into SetCallback on the go library interface.
+        /// </summary>
+        /// <param name="success"></param>
+        private void SetConnected(int success)
+        {
+            switch (success)
+            {
+                case 0:
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = "all",
+                        Status = Status.Connecting
+                    });
+                    break;
+                case 1:
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = "all",
+                        Status = Status.Connected
+                    });
+                    OnConnected?.Invoke(this, "all");
+                    foreach (var key in tcss.Keys)
+                    {
+                        tcss[key]?.TrySetResult("");
+                    }
+                    break;
+                case 2:
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = "all",
+                        Status = Status.Error
+                    });
+                    OnError?.Invoke(this, new ErrorEventArgs()
+                    {
+                        Instance = "all",
+                        ErrorMessage = "An error occured"
+                    });
+                    foreach (var key in tcss.Keys)
+                    {
+                        tcss[key]?.TrySetResult("An error occured");
+                    }
+                    break;
+                default:
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = "all",
+                        Status = Status.Disconnected
+                    });
+                    OnDisconnected?.Invoke(this, "all");
                     break;
             }
         }
