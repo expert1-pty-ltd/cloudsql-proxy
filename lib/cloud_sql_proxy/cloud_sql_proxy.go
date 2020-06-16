@@ -630,7 +630,7 @@ func SetStatus(i string, s string, e string) {
 
 		// dialContext will time out after 10 seconds
 		dialContext := context.Background()
-		dialContext, cancel := context.WithTimeout(dialContext, 10*time.Second)
+		dialContext, cancel := context.WithTimeout(dialContext, 30*time.Second)
 		defer cancel()
 
 		conn, err := grpc.DialContext(dialContext, fmt.Sprintf("127.0.0.1:%d", grpcPort), grpc.WithInsecure(), grpc.WithBlock())
