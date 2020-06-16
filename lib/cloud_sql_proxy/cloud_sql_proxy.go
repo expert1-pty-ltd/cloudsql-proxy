@@ -643,7 +643,7 @@ func SetStatus(i string, s string, e string) {
 
 		c := pb.NewProxyStatusClient(conn)
 
-		_, err = c.SetProxyStatus(dialContext, &pb.ProxyStatusRequest { Id: grpcId, Name: i, Status: s, Error: e })
+		_, err = c.SetProxyStatus(dialContext, &pb.ProxyStatusRequest { Id: grpcId, Instance: i, Status: s, Error: e })
 		if err != nil {
 			logging.Errorf("could not set status: %v", err)
 		}
