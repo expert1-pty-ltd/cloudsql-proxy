@@ -1,16 +1,14 @@
 syntax = "proto3";
-// package main;
-
-// option go_package = "proxy-status";
 
 service ProxyStatus {
   rpc SetProxyStatus (ProxyStatusRequest) returns (ProxyStatusReply) {};
 }
 
 message ProxyStatusRequest {
-   string name = 1;
-   string status = 2;
-   string error = 3;
+   string id = 1;
+   string instance = 2;
+   string status = 3;
+   string error = 4;
 }
 
 message ProxyStatusReply {

@@ -16,6 +16,7 @@ using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -59,6 +60,9 @@ namespace cloudsql_proxy_cs
 
         private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
         private ConcurrentDictionary<string, int> proxyCounter;
+        private Server server;
+        private string GRPCId { get; set; }
+        private int GRPCPort { get; set; }
 
         /// <summary>
         /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
@@ -113,28 +117,19 @@ namespace cloudsql_proxy_cs
             tcss = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
             proxyCounter = new ConcurrentDictionary<string, int>();
 
-            var server = new Server
+            server = new Server
             {
                 Services = { ProxyStatus.BindService(new ProxyStatusImpl()) },
-                Ports = { new ServerPort("localhost", 50001, ServerCredentials.Insecure) }
+                Ports = { new ServerPort("127.0.0.1", 0, ServerCredentials.Insecure) }
             };
 
-            //statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
+            server.Start();
 
-            //switch (Platform)
-            //{
-            //    case "linux-64":
-            //        StaticProxy.SetCallbackLinux(statusCallbackReference);
-            //        break;
-            //    case "win-64":
-            //        StaticProxy.SetCallbackx64(statusCallbackReference);
-            //        break;
-            //    case "win-32":
-            //        StaticProxy.SetCallbackx86(statusCallbackReference);
-            //        break;
-            //    default:
-            //        throw new Exception("Invalid platform");
-            //}
+            if (server.Ports != null && server.Ports.Count() > 0)
+            {
+                this.GRPCPort = server.Ports.First().BoundPort;
+                this.GRPCId = Guid.NewGuid().ToString();
+            }
         }
 
         /// <summary>
@@ -148,6 +143,16 @@ namespace cloudsql_proxy_cs
                 _instance = new Proxy();
             }
             return _instance;
+        }
+
+        /// <summary>
+        /// Validates the id from a gRPC request for validity
+        /// </summary>
+        /// <param name="id">gRPC ID</param>
+        /// <returns></returns>
+        public bool IsCallbackValid(string id)
+        {
+            return id == this.GRPCId;
         }
 
         /// <summary>
@@ -545,13 +550,13 @@ namespace cloudsql_proxy_cs
             switch (platform)
             {
                 case "linux-64":
-                    StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
+                    StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
                     break;
                 case "win-64":
-                    StaticProxy.StartProxyWithCredentialFilex64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
+                    StaticProxy.StartProxyWithCredentialFilex64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
                     break;
                 case "win-32":
-                    StaticProxy.StartProxyWithCredentialFilex86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile));
+                    StaticProxy.StartProxyWithCredentialFilex86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
                     break;
                 default:
                     throw new Exception("Invalid platform");
@@ -563,13 +568,13 @@ namespace cloudsql_proxy_cs
             switch (platform)
             {
                 case "linux-64":
-                    StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson));
+                    StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
                     break;
                 case "win-64":
-                    StaticProxy.StartProxyWithCredentialJsonx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson));
+                    StaticProxy.StartProxyWithCredentialJsonx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
                     break;
                 case "win-32":
-                    StaticProxy.StartProxyWithCredentialJsonx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson));
+                    StaticProxy.StartProxyWithCredentialJsonx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
                     break;
                 default:
                     throw new Exception("Invalid platform");
@@ -581,6 +586,8 @@ namespace cloudsql_proxy_cs
         {
             // instruct proxy to die
             StopAll();
+
+            server.KillAsync().Wait();
         }
     }
 }

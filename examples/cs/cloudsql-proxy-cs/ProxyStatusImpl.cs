@@ -5,23 +5,32 @@ using System;
 namespace cloudsql_proxy_cs
 {
     /// <summary>
-    /// ProxyStatusImpl
+    /// Implementation of proxy status gRPC Server
     /// </summary>
     public partial class ProxyStatusImpl: ProxyStatus.ProxyStatusBase
     {
         /// <summary>
-        /// SetStatus
+        /// Sets the status of the proxy
         /// </summary>
-        /// <param name="request"></param>
-        /// <param name="context"></param>
+        /// <param name="request">status request</param>
+        /// <param name="context">server context</param>
         /// <returns></returns>
         public override Task<ProxyStatusReply> SetProxyStatus(ProxyStatusRequest request, ServerCallContext context)
         {
+            // get the current static singleton instance of the proxy
             var proxy = Proxy.GetInstance();
 
-            proxy.SetStatus(request.Name, request.Status, request.Error);
+            // if the callback is valid
+            if (proxy.IsCallbackValid(request.Id))
+            {
+                // set the status based on the instance provided in the callbak
+                proxy.SetStatus(request.Instance, request.Status, request.Error);
 
-            return Task.FromResult(new ProxyStatusReply { Success = true });
+                // return the response
+                return Task.FromResult(new ProxyStatusReply { Success = true });
+            } else {
+                return Task.FromResult(new ProxyStatusReply { Success = false });
+            }
         }
     }
 }
