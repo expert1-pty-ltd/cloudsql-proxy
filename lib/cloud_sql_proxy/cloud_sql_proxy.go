@@ -626,14 +626,14 @@ func SetStatus(i string, s string, e string) {
 	activeInstances[i].status = s
 
 	if (grpcId != "" && grpcPort > 0) {
-		dialContext := context.Background()
-
 		logging.Infof("connecting to gRPC server")
 
-		dialContext, cancel := context.WithTimeout(dialContext, 4*time.Second)
+		// dialContext will time out after 10 seconds
+		dialContext := context.Background()
+		dialContext, cancel := context.WithTimeout(dialContext, 10*time.Second)
 		defer cancel()
 
-		conn, err := grpc.DialContext(dialContext, "127.0.0.1:" + grpcPort, grpc.WithInsecure(), grpc.WithBlock())
+		conn, err := grpc.DialContext(dialContext, fmt.Sprintf("127.0.0.1:%d", grpcPort), grpc.WithInsecure(), grpc.WithBlock())
 		if err != nil {
 			logging.Errorf("did not connect: %v", err)
 		}
