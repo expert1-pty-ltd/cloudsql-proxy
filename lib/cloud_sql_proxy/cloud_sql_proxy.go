@@ -45,7 +45,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"github.com/GoogleCloudPlatform/cloudsql-proxy/logging"
 	"github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/certs"
@@ -59,12 +58,11 @@ import (
 	"golang.org/x/oauth2"
 	goauth "golang.org/x/oauth2/google"
 	sqladmin "google.golang.org/api/sqladmin/v1beta4"
-	"google.golang.org/grpc"
-	pb "github.com/expert1-pty-ltd/cloudsql-proxy/lib/cloud_sql_proxy/proxy_status"
 )
 
 /*
 #include <stdlib.h>
+#include "extern.h"
 */
 import "C"
 
@@ -102,8 +100,7 @@ var (
 	// port that connects to sql server
 	sqlPort = 3307
 
-	grpcPort = 0
-	grpcId = ""
+	g_cb C.callbackFunc
 )
 
 type ProxyInstance struct {
@@ -364,28 +361,29 @@ func Echo(message *C.char)(*C.char) {
 }
 
 //export StartProxyWithCredentialFile
-func StartProxyWithCredentialFile(_instances *C.char, _tokenFile *C.char, _port int, _id *C.char) {
+func StartProxyWithCredentialFile(_instances *C.char, _tokenFile *C.char, cb C.callbackFunc) {
 	var goInstances = C.GoString(_instances);
 	var goTokenFile = C.GoString(_tokenFile);
-	var goId = C.GoString(_id);
-	StartProxy(goInstances, goTokenFile, "", _port, goId)
+
+	g_cb = cb
+
+	StartProxy(goInstances, goTokenFile, "")
 }
 
 //export StartProxyWithCredentialJson
-func StartProxyWithCredentialJson(_instances *C.char, _tokenJson *C.char, _port int, _id *C.char) {
+func StartProxyWithCredentialJson(_instances *C.char, _tokenJson *C.char, cb C.callbackFunc) {
 	var goInstances = C.GoString(_instances);
 	var goTokenJson = C.GoString(_tokenJson);
-	var goId = C.GoString(_id);
-	StartProxy(goInstances, "", goTokenJson, _port, goId)
+
+	g_cb = cb
+
+	StartProxy(goInstances, "", goTokenJson)
 }
 
-func StartProxy(_instances string, _tokenFile string, _tokenJson string, _port int, _id string) {
+func StartProxy(_instances string, _tokenFile string, _tokenJson string) {
 	main()
 
 	instance := _instances
-
-	grpcPort = _port;
-	grpcId = _id;
 
 	newInstance := new(ProxyInstance)
 	newInstance.instances = instance
@@ -611,11 +609,17 @@ func ShutdownProxy(instance string) {
 }
 
 //export GetStatus
-func GetStatus(i *C.char)(*C.char)  {
+func GetStatus(i *C.char) int  {
 	instance := C.GoString(i)
-	var cStatus = C.CString(activeInstances[instance].status)
-	defer C.free(unsafe.Pointer(cStatus))
-	return cStatus;
+
+	if activeInstances[instance].status == "connected" {
+		return 1;
+	} else if activeInstances[instance].status == "disconnected" {
+		return 2;
+	} else if activeInstances[instance].status == "error" {
+		return 3;
+	}
+	return 0;
 }
 
 /*
@@ -625,30 +629,7 @@ func GetStatus(i *C.char)(*C.char)  {
 func SetStatus(i string, s string, e string) {
 	activeInstances[i].status = s
 
-	if (grpcId != "" && grpcPort > 0) {
-		logging.Infof("connecting to gRPC server")
-
-		// dialContext will time out after 10 seconds
-		dialContext := context.Background()
-		dialContext, cancel := context.WithTimeout(dialContext, 30*time.Second)
-		defer cancel()
-
-		conn, err := grpc.DialContext(dialContext, fmt.Sprintf("127.0.0.1:%d", grpcPort), grpc.WithInsecure(), grpc.WithBlock())
-		if err != nil {
-			logging.Errorf("did not connect: %v", err)
-		}
-		defer conn.Close()
-
-		logging.Infof("connected to gRPC server")
-
-		c := pb.NewProxyStatusClient(conn)
-
-		_, err = c.SetProxyStatus(dialContext, &pb.ProxyStatusRequest { Id: grpcId, Instance: i, Status: s, Error: e })
-		if err != nil {
-			logging.Errorf("could not set status: %v", err)
-		}
-		logging.Infof("status set")
-	} else {
-		logging.Infof("instance not started")
+	if (g_cb != nil) {
+		C.invokeFunctionPointer(g_cb, C.CString(i), C.CString(s), C.CString(e));
 	}
 }

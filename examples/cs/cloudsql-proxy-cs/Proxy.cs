@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -56,13 +55,10 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        //private static StaticProxy.StatusCallback statusCallbackReference;
+        private static StaticProxy.StatusCallback statusCallbackReference;
 
         private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
         private ConcurrentDictionary<string, int> proxyCounter;
-        private Server server;
-        private string GRPCId { get; set; }
-        private int GRPCPort { get; set; }
 
         /// <summary>
         /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
@@ -116,20 +112,6 @@ namespace cloudsql_proxy_cs
         {
             tcss = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
             proxyCounter = new ConcurrentDictionary<string, int>();
-
-            server = new Server
-            {
-                Services = { ProxyStatus.BindService(new ProxyStatusImpl()) },
-                Ports = { new ServerPort("127.0.0.1", 0, ServerCredentials.Insecure) }
-            };
-
-            server.Start();
-
-            if (server.Ports != null && server.Ports.Count() > 0)
-            {
-                this.GRPCPort = server.Ports.First().BoundPort;
-                this.GRPCId = Guid.NewGuid().ToString();
-            }
         }
 
         /// <summary>
@@ -143,16 +125,6 @@ namespace cloudsql_proxy_cs
                 _instance = new Proxy();
             }
             return _instance;
-        }
-
-        /// <summary>
-        /// Validates the id from a gRPC request for validity
-        /// </summary>
-        /// <param name="id">gRPC ID</param>
-        /// <returns></returns>
-        public bool IsCallbackValid(string id)
-        {
-            return id == this.GRPCId;
         }
 
         /// <summary>
@@ -501,33 +473,23 @@ namespace cloudsql_proxy_cs
                 throw new InvalidProxyException($"The proxy instance {instances} has not been started");
             }
 
-            string status;
+            int status;
             switch (Platform)
             {
                 case "linux-64":
-                    status = Marshal.PtrToStringAnsi(StaticProxy.GetStatusLinux(Encoding.UTF8.GetBytes(instances)));
+                    status = StaticProxy.GetStatusLinux(Encoding.UTF8.GetBytes(instances));
                     break;
                 case "win-64":
-                    status = Marshal.PtrToStringAnsi(StaticProxy.GetStatusx64(Encoding.UTF8.GetBytes(instances)));
+                    status = StaticProxy.GetStatusx64(Encoding.UTF8.GetBytes(instances));
                     break;
                 case "win-32":
-                    status = Marshal.PtrToStringAnsi(StaticProxy.GetStatusx86(Encoding.UTF8.GetBytes(instances)));
+                    status = StaticProxy.GetStatusx86(Encoding.UTF8.GetBytes(instances));
                     break;
                 default:
                     throw new Exception("Invalid platform");
             }
 
-            switch (status)
-            {
-                case "connecting":
-                    return Status.Connecting;
-                case "connected":
-                    return Status.Connected;
-                case "error":
-                    return Status.Error;
-                default:
-                    return Status.Disconnected;
-            }
+            return (Status)status;
         }
 
         private void RunJob(object p)
@@ -547,16 +509,18 @@ namespace cloudsql_proxy_cs
 
         private void StartProxyWithCredentialFile(string platform, string instances, string tokenFile)
         {
+            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
+
             switch (platform)
             {
                 case "linux-64":
-                    StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
+                    StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
                     break;
                 case "win-64":
-                    StaticProxy.StartProxyWithCredentialFilex64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
+                    StaticProxy.StartProxyWithCredentialFilex64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
                     break;
                 case "win-32":
-                    StaticProxy.StartProxyWithCredentialFilex86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
+                    StaticProxy.StartProxyWithCredentialFilex86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
                     break;
                 default:
                     throw new Exception("Invalid platform");
@@ -565,19 +529,76 @@ namespace cloudsql_proxy_cs
 
         private void StartProxyWithCredentialJson(string platform, string instances, string tokenJson)
         {
+            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
+
             switch (platform)
             {
                 case "linux-64":
-                    StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
+                    StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
                     break;
                 case "win-64":
-                    StaticProxy.StartProxyWithCredentialJsonx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
+                    StaticProxy.StartProxyWithCredentialJsonx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
                     break;
                 case "win-32":
-                    StaticProxy.StartProxyWithCredentialJsonx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), this.GRPCPort, Encoding.UTF8.GetBytes(this.GRPCId));
+                    StaticProxy.StartProxyWithCredentialJsonx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
                     break;
                 default:
                     throw new Exception("Invalid platform");
+            }
+        }
+
+        private void SetStatus(IntPtr instance, IntPtr status, IntPtr error)
+        {
+            // decode message from bytes
+            var instanceStr = Marshal.PtrToStringAnsi(instance);
+            var statusStr = Marshal.PtrToStringAnsi(status);
+            var errorStr = Marshal.PtrToStringAnsi(error);
+
+            switch (statusStr)
+            {
+                case "connecting":
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = instanceStr,
+                        Status = Status.Connecting
+                    });
+                    break;
+                case "connected":
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = instanceStr,
+                        Status = Status.Connected
+                    });
+                    OnConnected?.Invoke(this, instanceStr);
+                    if (tcss.ContainsKey(instanceStr))
+                    {
+                        tcss[instanceStr]?.TrySetResult("");
+                    }
+                    break;
+                case "error":
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = instanceStr,
+                        Status = Status.Error
+                    });
+                    OnError?.Invoke(this, new ErrorEventArgs()
+                    {
+                        Instance = instanceStr,
+                        ErrorMessage = errorStr
+                    });
+                    if (tcss.ContainsKey(instanceStr))
+                    {
+                        tcss[instanceStr]?.TrySetResult(errorStr);
+                    }
+                    break;
+                default:
+                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
+                    {
+                        Instance = instanceStr,
+                        Status = Status.Disconnected
+                    });
+                    OnDisconnected?.Invoke(this, instanceStr);
+                    break;
             }
         }
 
@@ -586,8 +607,6 @@ namespace cloudsql_proxy_cs
         {
             // instruct proxy to die
             StopAll();
-
-            server.KillAsync().Wait();
         }
     }
 }

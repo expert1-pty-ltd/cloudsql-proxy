@@ -22,6 +22,16 @@ namespace cloudsql_proxy_cs
     /// </summary>
     public static class StaticProxy
     {
+
+        /// <summary>
+        /// Delegate which is passed to SetCallback on the go library
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="status"></param>
+        /// <param name="error"></param>
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate void StatusCallback(IntPtr instance, IntPtr status, IntPtr error);
+
         #region "Linux"
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "Echo")]
@@ -29,11 +39,11 @@ namespace cloudsql_proxy_cs
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
-        internal extern static void StartProxyWithCredentialFileLinux(byte[] instances, byte[] tokenFile, int grpcPort, byte[] grpcId);
+        internal extern static void StartProxyWithCredentialFileLinux(byte[] instances, byte[] tokenFile, StatusCallback cb);
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
-        internal extern static void StartProxyWithCredentialJsonLinux(byte[] instances, byte[] tokenJson, int grpcPort, byte[] grpcId);
+        internal extern static void StartProxyWithCredentialJsonLinux(byte[] instances, byte[] tokenJson, StatusCallback cb);
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
@@ -45,7 +55,7 @@ namespace cloudsql_proxy_cs
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "GetStatus")]
-        internal extern static IntPtr GetStatusLinux(byte[] instances);
+        internal extern static int GetStatusLinux(byte[] instances);
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPort")]
@@ -59,11 +69,11 @@ namespace cloudsql_proxy_cs
 
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
-        internal extern static void StartProxyWithCredentialFilex64(byte[] instances, byte[] tokenFile, int grpcPort, byte[] grpcId);
+        internal extern static void StartProxyWithCredentialFilex64(byte[] instances, byte[] tokenFile, StatusCallback cb);
 
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
-        internal extern static void StartProxyWithCredentialJsonx64(byte[] instances, byte[] tokenJson, int grpcPort, byte[] grpcId);
+        internal extern static void StartProxyWithCredentialJsonx64(byte[] instances, byte[] tokenJson, StatusCallback cb);
 
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
@@ -75,7 +85,7 @@ namespace cloudsql_proxy_cs
 
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "GetStatus")]
-        internal extern static IntPtr GetStatusx64(byte[] instances);
+        internal extern static int GetStatusx64(byte[] instances);
 
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPort")]
@@ -84,31 +94,31 @@ namespace cloudsql_proxy_cs
 
         #region "x86"
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "Echo")]
+           CallingConvention = CallingConvention.Cdecl, EntryPoint = "Echo")]
         internal extern static IntPtr Echox86(byte[] message);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
-        internal extern static void StartProxyWithCredentialFilex86(byte[] instances, byte[] tokenFile, int grpcPort, byte[] grpcId);
+           CallingConvention = CallingConvention.Cdecl, EntryPoint = "StartProxyWithCredentialFile")]
+        internal extern static void StartProxyWithCredentialFilex86(byte[] instances, byte[] tokenFile, StatusCallback cb);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
-        internal extern static void StartProxyWithCredentialJsonx86(byte[] instances, byte[] tokenJson, int grpcPort, byte[] grpcId);
+           CallingConvention = CallingConvention.Cdecl, EntryPoint = "StartProxyWithCredentialJson")]
+        internal extern static void StartProxyWithCredentialJsonx86(byte[] instances, byte[] tokenJson, StatusCallback cb);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-                   CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
+                   CallingConvention = CallingConvention.Cdecl, EntryPoint = "StopProxy")]
         internal extern static void StopProxyx86(byte[] instances);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-                   CallingConvention = CallingConvention.StdCall, EntryPoint = "StopAll")]
+                   CallingConvention = CallingConvention.Cdecl, EntryPoint = "StopAll")]
         internal extern static void StopAllx86();
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-                   CallingConvention = CallingConvention.StdCall, EntryPoint = "GetStatus")]
-        internal extern static IntPtr GetStatusx86(byte[] instances);
+                   CallingConvention = CallingConvention.Cdecl, EntryPoint = "GetStatus")]
+        internal extern static int GetStatusx86(byte[] instances);
 
         [DllImport(@"cloud_sql_proxy_x86.dll", CharSet = CharSet.Unicode,
-                   CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPort")]
+                   CallingConvention = CallingConvention.Cdecl, EntryPoint = "GetPort")]
         internal extern static int GetPortx86(byte[] instances);
         #endregion
     }

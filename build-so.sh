@@ -1,0 +1,9 @@
+export GOROOT=/usr/local/go;
+export GOPATH=/home/jinathy/go;
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH;
+export GOOS=;
+export GOARCH=;
+export CGO_ENABLED=;
+export CXX=;
+export CC=;
+go build -buildmode=c-shared -o ../tangoenterprise/Expert1.Tango/bin/Debug/cloud_sql_proxy.so ./lib/cloud_sql_proxy
