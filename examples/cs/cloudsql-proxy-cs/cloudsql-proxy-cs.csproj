@@ -29,6 +29,9 @@
     <PropertyGroup>
         <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
     </PropertyGroup>
+    <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+        <DefineConstants>_WINDOWS</DefineConstants>
+    </PropertyGroup>
 
     <ItemGroup>
         <None Include="build\cloudsql-proxy-cs.targets" Pack="true" PackagePath="build\">

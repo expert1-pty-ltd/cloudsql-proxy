@@ -56,6 +56,7 @@ namespace cloudsql_proxy_cs
         }
 
         private static StaticProxy.StatusCallback statusCallbackReference;
+        private static StaticProxy.StatusCallbackLinux statusCallbackReferenceLinux;
 
         private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
         private ConcurrentDictionary<string, int> proxyCounter;
@@ -509,17 +510,18 @@ namespace cloudsql_proxy_cs
 
         private void StartProxyWithCredentialFile(string platform, string instances, string tokenFile)
         {
-            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
-
             switch (platform)
             {
                 case "linux-64":
-                    StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
+                    statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
+                    StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReferenceLinux);
                     break;
                 case "win-64":
+                    statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialFilex64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
                     break;
                 case "win-32":
+                    statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialFilex86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
                     break;
                 default:
@@ -529,17 +531,18 @@ namespace cloudsql_proxy_cs
 
         private void StartProxyWithCredentialJson(string platform, string instances, string tokenJson)
         {
-            statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
-
             switch (platform)
             {
                 case "linux-64":
-                    StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
+                    statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
+                    StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReferenceLinux);
                     break;
                 case "win-64":
+                    statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialJsonx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
                     break;
                 case "win-32":
+                    statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialJsonx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
                     break;
                 default:

@@ -32,6 +32,14 @@ namespace cloudsql_proxy_cs
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void StatusCallback(IntPtr instance, IntPtr status, IntPtr error);
 
+        /// <summary>
+        /// Delegate which is passed to SetCallback on the go library
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="status"></param>
+        /// <param name="error"></param>
+        public delegate void StatusCallbackLinux(IntPtr instance, IntPtr status, IntPtr error);
+
         #region "Linux"
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "Echo")]
@@ -39,11 +47,11 @@ namespace cloudsql_proxy_cs
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
-        internal extern static void StartProxyWithCredentialFileLinux(byte[] instances, byte[] tokenFile, StatusCallback cb);
+        internal extern static void StartProxyWithCredentialFileLinux(byte[] instances, byte[] tokenFile, StatusCallbackLinux cb);
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
-        internal extern static void StartProxyWithCredentialJsonLinux(byte[] instances, byte[] tokenJson, StatusCallback cb);
+        internal extern static void StartProxyWithCredentialJsonLinux(byte[] instances, byte[] tokenJson, StatusCallbackLinux cb);
 
         [DllImport(@"cloud_sql_proxy.so", CharSet = CharSet.Unicode,
                    CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
