@@ -70,6 +70,36 @@ namespace cloudsql_proxy_cs
         internal extern static int GetPortLinux(byte[] instances);
         #endregion
 
+        #region "Linux arm64"
+        [DllImport(@"cloud_sql_proxy_arm64.so", CharSet = CharSet.Unicode,
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "Echo")]
+        internal extern static IntPtr EchoLinuxArm64(byte[] message);
+
+        [DllImport(@"cloud_sql_proxy_arm64.so", CharSet = CharSet.Unicode,
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialFile")]
+        internal extern static void StartProxyWithCredentialFileLinuxArm64(byte[] instances, byte[] tokenFile, StatusCallbackLinux cb);
+
+        [DllImport(@"cloud_sql_proxy_arm64.so", CharSet = CharSet.Unicode,
+           CallingConvention = CallingConvention.StdCall, EntryPoint = "StartProxyWithCredentialJson")]
+        internal extern static void StartProxyWithCredentialJsonLinuxArm64(byte[] instances, byte[] tokenJson, StatusCallbackLinux cb);
+
+        [DllImport(@"cloud_sql_proxy_arm64.so", CharSet = CharSet.Unicode,
+                   CallingConvention = CallingConvention.StdCall, EntryPoint = "StopProxy")]
+        internal extern static void StopProxyLinuxArm64(byte[] instances);
+
+        [DllImport(@"cloud_sql_proxy_arm64.so", CharSet = CharSet.Unicode,
+                   CallingConvention = CallingConvention.StdCall, EntryPoint = "StopAll")]
+        internal extern static void StopAllLinuxArm64();
+
+        [DllImport(@"cloud_sql_proxy_arm64.so", CharSet = CharSet.Unicode,
+                   CallingConvention = CallingConvention.StdCall, EntryPoint = "GetStatus")]
+        internal extern static int GetStatusLinuxArm64(byte[] instances);
+
+        [DllImport(@"cloud_sql_proxy_arm64.so", CharSet = CharSet.Unicode,
+                   CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPort")]
+        internal extern static int GetPortLinuxArm64(byte[] instances);
+        #endregion
+
         #region "x64"
         [DllImport(@"cloud_sql_proxy_x64.dll", CharSet = CharSet.Unicode,
            CallingConvention = CallingConvention.StdCall, EntryPoint = "Echo")]

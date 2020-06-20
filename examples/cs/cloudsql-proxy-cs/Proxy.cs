@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -34,24 +35,38 @@ namespace cloudsql_proxy_cs
         {
             get
             {
-                switch (Environment.OSVersion.Platform)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    case PlatformID.Unix:
-                    case PlatformID.MacOSX:
-                        return "linux-64";
-                    case PlatformID.Win32NT:
-                        {
-                            if (Environment.Is64BitProcess)
-                            {
-                                return "win-64";
-                            }
-                            else
-                            {
-                                return "win-32";
-                            }
-                        }
+                    switch (RuntimeInformation.OSArchitecture)
+                    {
+                        case Architecture.Arm64:
+                            return "linux-arm64";
+                        case Architecture.X64:
+                            return "linux-64";
+                        default:
+                            return "";
+                    }
                 }
-                return "";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    return "linux-64";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    switch (RuntimeInformation.OSArchitecture)
+                    {
+                        case Architecture.X64:
+                            return "win-64";
+                        case Architecture.X86:
+                            return "win-32";
+                        default:
+                            return "";
+                    }
+                }
+                else
+                {
+                    return "";
+                }
             }
         }
 
@@ -339,6 +354,8 @@ namespace cloudsql_proxy_cs
         {
             switch (Platform)
             {
+                case "linux-arm64":
+                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinuxArm64((Encoding.UTF8.GetBytes(message))));
                 case "linux-64":
                     return Marshal.PtrToStringAnsi(StaticProxy.EchoLinux((Encoding.UTF8.GetBytes(message))));
                 case "win-64":
@@ -371,6 +388,8 @@ namespace cloudsql_proxy_cs
             {
                 switch (Platform)
                 {
+                    case "linux-arm64":
+                        return StaticProxy.GetPortLinuxArm64(Encoding.UTF8.GetBytes(instances));
                     case "linux-64":
                         return StaticProxy.GetPortLinux(Encoding.UTF8.GetBytes(instances));
                     case "win-64":
@@ -415,6 +434,9 @@ namespace cloudsql_proxy_cs
                 {
                     switch (Platform)
                     {
+                        case "linux-arm64":
+                            StaticProxy.StopProxyLinuxArm64(Encoding.UTF8.GetBytes(instances));
+                            break;
                         case "linux-64":
                             StaticProxy.StopProxyLinux(Encoding.UTF8.GetBytes(instances));
                             break;
@@ -447,6 +469,9 @@ namespace cloudsql_proxy_cs
         {
             switch (Platform)
             {
+                case "linux-arm64":
+                    StaticProxy.StopAllLinuxArm64();
+                    break;
                 case "linux-64":
                     StaticProxy.StopAllLinux();
                     break;
@@ -477,6 +502,9 @@ namespace cloudsql_proxy_cs
             int status;
             switch (Platform)
             {
+                case "linux-arm64":
+                    status = StaticProxy.GetStatusLinuxArm64(Encoding.UTF8.GetBytes(instances));
+                    break;
                 case "linux-64":
                     status = StaticProxy.GetStatusLinux(Encoding.UTF8.GetBytes(instances));
                     break;
@@ -512,6 +540,10 @@ namespace cloudsql_proxy_cs
         {
             switch (platform)
             {
+                case "linux-arm64":
+                    statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
+                    StaticProxy.StartProxyWithCredentialFileLinuxArm64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReferenceLinux);
+                    break;
                 case "linux-64":
                     statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
                     StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReferenceLinux);
@@ -533,6 +565,10 @@ namespace cloudsql_proxy_cs
         {
             switch (platform)
             {
+                case "linux-arm64":
+                    statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
+                    StaticProxy.StartProxyWithCredentialJsonLinuxArm64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReferenceLinux);
+                    break;
                 case "linux-64":
                     statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
                     StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReferenceLinux);
