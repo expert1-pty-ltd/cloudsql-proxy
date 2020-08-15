@@ -13,9 +13,7 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading;
 
 namespace cmd
 {
@@ -44,10 +42,10 @@ namespace cmd
         //    thread.Start();
         //}
 
-            /// <summary>
-            /// Having issues with this library on linux - so this is going to now be a standard console
-            /// </summary>
-            private static class m_Queue
+        /// <summary>
+        /// Having issues with this library on linux - so this is going to now be a standard console
+        /// </summary>
+        private static class Queue
         {
             public static void Add(KeyValuePair<ConsoleColor, string> item)
             {
@@ -63,42 +61,42 @@ namespace cmd
 
         public static void WriteLine(string value)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.White, value));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.White, value));
         }
 
         public static void WriteLine(string value, params object[] p)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.White, string.Format(value, p)));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.White, string.Format(value, p)));
         }
 
         public static void WriteSuccess(string value)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Green, value));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Green, value));
         }
 
         public static void WriteSuccess(string value, params object[] p)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Green, string.Format(value, p)));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Green, string.Format(value, p)));
         }
 
         public static void WriteDebug(string value)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Yellow, value));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Yellow, value));
         }
 
         public static void WriteDebug(string value, params object[] p)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Yellow, string.Format(value, p)));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Yellow, string.Format(value, p)));
         }
 
         public static void WriteError(string value)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Red, value));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Red, value));
         }
 
         public static void WriteError(string value, params object[] p)
         {
-            m_Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Red, string.Format(value, p)));
+            Queue.Add(new KeyValuePair<ConsoleColor, string>(ConsoleColor.Red, string.Format(value, p)));
         }
     }
 }

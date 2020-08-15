@@ -22,7 +22,6 @@ namespace cloudsql_proxy_cs
     /// </summary>
     public static class StaticProxy
     {
-
         /// <summary>
         /// Delegate which is passed to SetCallback on the go library
         /// </summary>

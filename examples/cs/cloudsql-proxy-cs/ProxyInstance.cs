@@ -24,8 +24,8 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// The current instance attached to this proxy instance
         /// </summary>
-        public string Instance { get; private set; }
-        private Proxy Proxy { get; set; }
+        public string Instance { get; }
+        private Proxy Proxy { get; }
 
         // Track whether Dispose has been called.
         private bool disposed = false;
@@ -37,7 +37,7 @@ namespace cloudsql_proxy_cs
         /// <param name="instance">Proxy instance we started</param>
         public ProxyInstance(ref Proxy proxy, in string instance)
         {
-            Instance = String.Copy(instance);
+            Instance = string.Copy(instance);
             Proxy = proxy;
         }
 
@@ -68,13 +68,17 @@ namespace cloudsql_proxy_cs
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
         /// Dispose(bool disposing) executes in two distinct scenarios.
-        /// If disposing equals true, the method has been called directly
+        /// <list type="bullet">
+        /// <item>If disposing equals true, the method has been called directly
         /// or indirectly by a user's code. Managed and unmanaged resources
-        /// can be disposed.
-        /// If disposing equals false, the method has been called by the
+        /// can be disposed.</item>
+        /// <item>If disposing equals false, the method has been called by the
         /// runtime from inside the finalizer and you should not reference
-        /// other objects. Only unmanaged resources can be disposed.
+        /// other objects. Only unmanaged resources can be disposed.</item>
+        /// </list>
+        /// </summary>
         /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {

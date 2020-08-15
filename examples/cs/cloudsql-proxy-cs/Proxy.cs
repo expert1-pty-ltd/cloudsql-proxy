@@ -14,9 +14,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -27,7 +24,7 @@ namespace cloudsql_proxy_cs
     /// <summary>
     /// Class used for the management of the Cloud SQL Proxy.
     /// </summary>
-    public class Proxy : IDisposable
+    public sealed class Proxy : IDisposable
     {
         private static Proxy _instance;
 
@@ -73,8 +70,8 @@ namespace cloudsql_proxy_cs
         private static StaticProxy.StatusCallback statusCallbackReference;
         private static StaticProxy.StatusCallbackLinux statusCallbackReferenceLinux;
 
-        private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
-        private ConcurrentDictionary<string, int> proxyCounter;
+        private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
+        private readonly ConcurrentDictionary<string, int> proxyCounter;
 
         /// <summary>
         /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
@@ -136,11 +133,7 @@ namespace cloudsql_proxy_cs
         /// <returns></returns>
         public static Proxy GetInstance()
         {
-            if (_instance == null)
-            {
-                _instance = new Proxy();
-            }
-            return _instance;
+            return _instance ?? (_instance = new Proxy());
         }
 
         /// <summary>
@@ -155,7 +148,7 @@ namespace cloudsql_proxy_cs
 
             if (tcss.ContainsKey(instance))
             {
-                var rr = await tcss[instance].Task;
+                var rr = await tcss[instance].Task.ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(rr))
                 {
                     throw new Exception(rr);
@@ -175,7 +168,7 @@ namespace cloudsql_proxy_cs
                 Credentials = string.Copy(credentials)
             });
 
-            var result = await tcss[instance].Task;
+            var result = await tcss[instance].Task.ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(result))
             {
                 throw new Exception(result);
@@ -292,60 +285,6 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Implements SetConnected delegate which is passed into SetCallback on the go library interface.
-        /// </summary>
-        /// <param name="success"></param>
-        private void SetConnected(int success)
-        {
-            switch (success)
-            {
-                case 0:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Connecting
-                    });
-                    break;
-                case 1:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Connected
-                    });
-                    OnConnected?.Invoke(this, "all");
-                    foreach (var key in tcss.Keys)
-                    {
-                        tcss[key]?.TrySetResult("");
-                    }
-                    break;
-                case 2:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Error
-                    });
-                    OnError?.Invoke(this, new ErrorEventArgs()
-                    {
-                        Instance = "all",
-                        ErrorMessage = "An error occured"
-                    });
-                    foreach (var key in tcss.Keys)
-                    {
-                        tcss[key]?.TrySetResult("An error occured");
-                    }
-                    break;
-                default:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Disconnected
-                    });
-                    OnDisconnected?.Invoke(this, "all");
-                    break;
-            }
-        }
-
-        /// <summary>
         /// Echo from the go library, used to test the go library connectivity.
         /// </summary>
         /// <param name="message">message to send</param>
@@ -355,13 +294,13 @@ namespace cloudsql_proxy_cs
             switch (Platform)
             {
                 case "linux-arm64":
-                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinuxArm64((Encoding.UTF8.GetBytes(message))));
+                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinuxArm64(Encoding.UTF8.GetBytes(message)));
                 case "linux-64":
-                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinux((Encoding.UTF8.GetBytes(message))));
+                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinux(Encoding.UTF8.GetBytes(message)));
                 case "win-64":
-                    return Marshal.PtrToStringAnsi(StaticProxy.Echox64((Encoding.UTF8.GetBytes(message))));
+                    return Marshal.PtrToStringAnsi(StaticProxy.Echox64(Encoding.UTF8.GetBytes(message)));
                 case "win-32":
-                    return Marshal.PtrToStringAnsi(StaticProxy.Echox86((Encoding.UTF8.GetBytes(message))));
+                    return Marshal.PtrToStringAnsi(StaticProxy.Echox86(Encoding.UTF8.GetBytes(message)));
                 default:
                     throw new Exception("Invalid platform");
             }
@@ -450,8 +389,8 @@ namespace cloudsql_proxy_cs
                             throw new Exception("Invalid platform");
                     }
 
-                    proxyCounter.TryRemove(instances, out int outVal1);
-                    tcss.TryRemove(instances, out TaskCompletionSource<string> outVal3);
+                    proxyCounter.TryRemove(instances, out _);
+                    _ = tcss.TryRemove(instances, out _);
                 }
                 else
                 {
@@ -459,7 +398,6 @@ namespace cloudsql_proxy_cs
                     throw new ProxyNotConnectedException();
                 }
             }
-
         }
 
         /// <summary>
@@ -641,7 +579,7 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        ///<inheritdoc cref="IDisposable"/> 
+        ///<inheritdoc cref="IDisposable"/>
         public void Dispose()
         {
             // instruct proxy to die
