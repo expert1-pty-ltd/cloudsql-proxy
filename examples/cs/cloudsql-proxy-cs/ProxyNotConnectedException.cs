@@ -5,10 +5,13 @@ namespace cloudsql_proxy_cs
     /// <summary>
     /// An exception thrown when a method is called that requires the proxy to be connected.
     /// </summary>
-    internal class ProxyNotConnectedException : Exception
+    [Serializable]
+    public class ProxyNotConnectedException : Exception
     {
+        private const string NotConnected = "The Proxy is not connected.";
+
         /// <summary>Initializes a new instance of the <see cref="ProxyNotConnectedException"></see> class with a specified error message.</summary>
-        public ProxyNotConnectedException() : base("The Proxy is not connected.")
+        public ProxyNotConnectedException() : base(NotConnected)
         {
         }
 

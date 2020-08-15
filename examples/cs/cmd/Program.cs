@@ -21,13 +21,7 @@ namespace cmd
         private static void Main(string[] args)
         {
             //var instance = args.Length == 1 ? args[0] : "";
-            var tokenFile = args.Length == 2 ? args[1] : @"google_cloud_key.json";
-
-            // Validate Instance
-            //if (string.IsNullOrWhiteSpace(instance))
-            //{
-            //    NonBlockingConsole.WriteError("Usage: cmd instance [tokenFile]");
-            //}
+            var tokenFile = args.Length == 2 ? args[1] : "google_cloud_key.json";
 
             // Validate Token File
             if (!System.IO.File.Exists(tokenFile))

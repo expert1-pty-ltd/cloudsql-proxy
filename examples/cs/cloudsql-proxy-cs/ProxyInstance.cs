@@ -28,7 +28,7 @@ namespace cloudsql_proxy_cs
         private Proxy Proxy { get; }
 
         // Track whether Dispose has been called.
-        private bool disposed = false;
+        private bool disposed;
 
         /// <summary>
         /// Default constructor
@@ -70,14 +70,12 @@ namespace cloudsql_proxy_cs
 
         /// <summary>
         /// Dispose(bool disposing) executes in two distinct scenarios.
-        /// <list type="bullet">
-        /// <item>If disposing equals true, the method has been called directly
+        /// <para>If disposing equals true, the method has been called directly
         /// or indirectly by a user's code. Managed and unmanaged resources
-        /// can be disposed.</item>
-        /// <item>If disposing equals false, the method has been called by the
+        /// can be disposed.</para>
+        /// <para>If disposing equals false, the method has been called by the
         /// runtime from inside the finalizer and you should not reference
-        /// other objects. Only unmanaged resources can be disposed.</item>
-        /// </list>
+        /// other objects. Only unmanaged resources can be disposed.</para>
         /// </summary>
         /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
