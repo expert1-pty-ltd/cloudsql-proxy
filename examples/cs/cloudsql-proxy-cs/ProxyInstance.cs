@@ -44,7 +44,6 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// Get the active port of this proxy instance
         /// </summary>
-        /// <returns></returns>
         public int GetPort()
         {
             return Proxy?.GetPort(Instance) ?? 0;
@@ -53,7 +52,6 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// Get the active port of this proxy instance
         /// </summary>
-        /// <returns></returns>
         public Status GetStatus()
         {
             return Proxy?.GetStatus(Instance) ?? Status.Disconnected;

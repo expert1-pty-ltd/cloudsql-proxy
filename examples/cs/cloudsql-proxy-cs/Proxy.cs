@@ -138,7 +138,6 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// Get static instance of the proxy
         /// </summary>
-        /// <returns></returns>
         public static Proxy GetInstance()
         {
             return _instance ?? (_instance = new Proxy());
@@ -296,7 +295,6 @@ namespace cloudsql_proxy_cs
         /// Echo from the go library, used to test the go library connectivity.
         /// </summary>
         /// <param name="message">message to send</param>
-        /// <returns></returns>
         public string Echo(string message)
         {
             switch (Platform)
