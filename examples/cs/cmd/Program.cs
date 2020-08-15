@@ -13,24 +13,15 @@
 // limitations under the License.
 
 using System;
-using System.Threading;
 
 namespace cmd
 {
-    class Program
+    internal static class Program
     {
-        private static bool exit = false;
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             //var instance = args.Length == 1 ? args[0] : "";
-            var tokenFile = args.Length == 2 ? args[1] : @"google_cloud_key.json";
-
-            // Validate Instance
-            //if (string.IsNullOrWhiteSpace(instance))
-            //{
-            //    NonBlockingConsole.WriteError("Usage: cmd instance [tokenFile]");
-            //}
+            var tokenFile = args.Length == 2 ? args[1] : "google_cloud_key.json";
 
             // Validate Token File
             if (!System.IO.File.Exists(tokenFile))
@@ -43,10 +34,7 @@ namespace cmd
                 NonBlockingConsole.WriteLine("Getting instance");
                 var proxy =  cloudsql_proxy_cs.Proxy.GetInstance();
 
-                proxy.OnStatusChanged += (object sender, cloudsql_proxy_cs.StatusEventArgs status) =>
-                {
-                    NonBlockingConsole.WriteLine($"Status from instance: {status.Instance}: {status.Status}");
-                };
+                proxy.OnStatusChanged += (object _, cloudsql_proxy_cs.StatusEventArgs status) => NonBlockingConsole.WriteLine($"Status from instance: {status.Instance}: {status.Status}");
 
                 NonBlockingConsole.WriteLine("Type :quit to exit");
                 var input = Console.ReadLine().ToLower().Trim();

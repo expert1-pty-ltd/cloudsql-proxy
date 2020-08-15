@@ -14,9 +14,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -27,8 +24,16 @@ namespace cloudsql_proxy_cs
     /// <summary>
     /// Class used for the management of the Cloud SQL Proxy.
     /// </summary>
-    public class Proxy : IDisposable
+    public sealed class Proxy : IDisposable
     {
+        private const string StatusConnecting = "connecting";
+        private const string StatusConnected = "connected";
+        private const string StatusError = "error";
+        private const string Platform_Linux_Arm64 = "linux-arm64";
+        private const string Platform_Linux_64 = "linux-64";
+        private const string Platform_Win_64 = "win-64";
+        private const string Platform_Win_32 = "win-32";
+        private const string Invalid_Platform = "Invalid platform";
         private static Proxy _instance;
 
         private string Platform
@@ -40,25 +45,25 @@ namespace cloudsql_proxy_cs
                     switch (RuntimeInformation.OSArchitecture)
                     {
                         case Architecture.Arm64:
-                            return "linux-arm64";
+                            return Platform_Linux_Arm64;
                         case Architecture.X64:
-                            return "linux-64";
+                            return Platform_Linux_64;
                         default:
                             return "";
                     }
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    return "linux-64";
+                    return Platform_Linux_64;
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     switch (RuntimeInformation.OSArchitecture)
                     {
                         case Architecture.X64:
-                            return "win-64";
+                            return Platform_Win_64;
                         case Architecture.X86:
-                            return "win-32";
+                            return Platform_Win_32;
                         default:
                             return "";
                     }
@@ -73,27 +78,27 @@ namespace cloudsql_proxy_cs
         private static StaticProxy.StatusCallback statusCallbackReference;
         private static StaticProxy.StatusCallbackLinux statusCallbackReferenceLinux;
 
-        private ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
-        private ConcurrentDictionary<string, int> proxyCounter;
+        private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> tcss;
+        private readonly ConcurrentDictionary<string, int> proxyCounter;
 
         /// <summary>
-        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes.
+        /// Triggers when the <see cref="Status"/> of the Proxy changes.
         /// Can be used to capture the status as it moves through different states.
         /// </summary>
         public event EventHandler<StatusEventArgs> OnStatusChanged;
 
         /// <summary>
-        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes to Connected.
+        /// Triggers when the <see cref="Status"/> of the Proxy changes to Connected.
         /// </summary>
         public event EventHandler<string> OnConnected;
 
         /// <summary>
-        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes to Disconnected.
+        /// Triggers when the <see cref="Status"/> of the Proxy changes to Disconnected.
         /// </summary>
         public event EventHandler<string> OnDisconnected;
 
         /// <summary>
-        /// Triggers when the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy changes to Error.
+        /// Triggers when the <see cref="Status"/> of the Proxy changes to Error.
         /// </summary>
         public event EventHandler<ErrorEventArgs> OnError;
 
@@ -133,14 +138,9 @@ namespace cloudsql_proxy_cs
         /// <summary>
         /// Get static instance of the proxy
         /// </summary>
-        /// <returns></returns>
         public static Proxy GetInstance()
         {
-            if (_instance == null)
-            {
-                _instance = new Proxy();
-            }
-            return _instance;
+            return _instance ?? (_instance = new Proxy());
         }
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace cloudsql_proxy_cs
 
             if (tcss.ContainsKey(instance))
             {
-                var rr = await tcss[instance].Task;
+                var rr = await tcss[instance].Task.ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(rr))
                 {
                     throw new Exception(rr);
@@ -175,7 +175,7 @@ namespace cloudsql_proxy_cs
                 Credentials = string.Copy(credentials)
             });
 
-            var result = await tcss[instance].Task;
+            var result = await tcss[instance].Task.ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(result))
             {
                 throw new Exception(result);
@@ -245,14 +245,14 @@ namespace cloudsql_proxy_cs
 
             switch (status)
             {
-                case "connecting":
+                case StatusConnecting:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instance,
                         Status = Status.Connecting
                     });
                     break;
-                case "connected":
+                case StatusConnected:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instance,
@@ -264,7 +264,7 @@ namespace cloudsql_proxy_cs
                         tcss[instance]?.TrySetResult("");
                     }
                     break;
-                case "error":
+                case StatusError:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instance,
@@ -292,78 +292,23 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Implements SetConnected delegate which is passed into SetCallback on the go library interface.
-        /// </summary>
-        /// <param name="success"></param>
-        private void SetConnected(int success)
-        {
-            switch (success)
-            {
-                case 0:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Connecting
-                    });
-                    break;
-                case 1:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Connected
-                    });
-                    OnConnected?.Invoke(this, "all");
-                    foreach (var key in tcss.Keys)
-                    {
-                        tcss[key]?.TrySetResult("");
-                    }
-                    break;
-                case 2:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Error
-                    });
-                    OnError?.Invoke(this, new ErrorEventArgs()
-                    {
-                        Instance = "all",
-                        ErrorMessage = "An error occured"
-                    });
-                    foreach (var key in tcss.Keys)
-                    {
-                        tcss[key]?.TrySetResult("An error occured");
-                    }
-                    break;
-                default:
-                    OnStatusChanged?.Invoke(this, new StatusEventArgs()
-                    {
-                        Instance = "all",
-                        Status = Status.Disconnected
-                    });
-                    OnDisconnected?.Invoke(this, "all");
-                    break;
-            }
-        }
-
-        /// <summary>
         /// Echo from the go library, used to test the go library connectivity.
         /// </summary>
         /// <param name="message">message to send</param>
-        /// <returns></returns>
         public string Echo(string message)
         {
             switch (Platform)
             {
-                case "linux-arm64":
-                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinuxArm64((Encoding.UTF8.GetBytes(message))));
-                case "linux-64":
-                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinux((Encoding.UTF8.GetBytes(message))));
-                case "win-64":
-                    return Marshal.PtrToStringAnsi(StaticProxy.Echox64((Encoding.UTF8.GetBytes(message))));
-                case "win-32":
-                    return Marshal.PtrToStringAnsi(StaticProxy.Echox86((Encoding.UTF8.GetBytes(message))));
+                case Platform_Linux_Arm64:
+                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinuxArm64(Encoding.UTF8.GetBytes(message)));
+                case Platform_Linux_64:
+                    return Marshal.PtrToStringAnsi(StaticProxy.EchoLinux(Encoding.UTF8.GetBytes(message)));
+                case Platform_Win_64:
+                    return Marshal.PtrToStringAnsi(StaticProxy.Echox64(Encoding.UTF8.GetBytes(message)));
+                case Platform_Win_32:
+                    return Marshal.PtrToStringAnsi(StaticProxy.Echox86(Encoding.UTF8.GetBytes(message)));
                 default:
-                    throw new Exception("Invalid platform");
+                    throw new Exception(Invalid_Platform);
             }
         }
 
@@ -388,16 +333,16 @@ namespace cloudsql_proxy_cs
             {
                 switch (Platform)
                 {
-                    case "linux-arm64":
+                    case Platform_Linux_Arm64:
                         return StaticProxy.GetPortLinuxArm64(Encoding.UTF8.GetBytes(instances));
-                    case "linux-64":
+                    case Platform_Linux_64:
                         return StaticProxy.GetPortLinux(Encoding.UTF8.GetBytes(instances));
-                    case "win-64":
+                    case Platform_Win_64:
                         return StaticProxy.GetPortx64(Encoding.UTF8.GetBytes(instances));
-                    case "win-32":
+                    case Platform_Win_32:
                         return StaticProxy.GetPortx86(Encoding.UTF8.GetBytes(instances));
                     default:
-                        throw new Exception("Invalid platform");
+                        throw new Exception(Invalid_Platform);
                 }
             }
             else
@@ -434,24 +379,24 @@ namespace cloudsql_proxy_cs
                 {
                     switch (Platform)
                     {
-                        case "linux-arm64":
+                        case Platform_Linux_Arm64:
                             StaticProxy.StopProxyLinuxArm64(Encoding.UTF8.GetBytes(instances));
                             break;
-                        case "linux-64":
+                        case Platform_Linux_64:
                             StaticProxy.StopProxyLinux(Encoding.UTF8.GetBytes(instances));
                             break;
-                        case "win-64":
+                        case Platform_Win_64:
                             StaticProxy.StopProxyx64(Encoding.UTF8.GetBytes(instances));
                             break;
-                        case "win-32":
+                        case Platform_Win_32:
                             StaticProxy.StopProxyx86(Encoding.UTF8.GetBytes(instances));
                             break;
                         default:
-                            throw new Exception("Invalid platform");
+                            throw new Exception(Invalid_Platform);
                     }
 
-                    proxyCounter.TryRemove(instances, out int outVal1);
-                    tcss.TryRemove(instances, out TaskCompletionSource<string> outVal3);
+                    proxyCounter.TryRemove(instances, out _);
+                    _ = tcss.TryRemove(instances, out _);
                 }
                 else
                 {
@@ -459,7 +404,6 @@ namespace cloudsql_proxy_cs
                     throw new ProxyNotConnectedException();
                 }
             }
-
         }
 
         /// <summary>
@@ -469,20 +413,20 @@ namespace cloudsql_proxy_cs
         {
             switch (Platform)
             {
-                case "linux-arm64":
+                case Platform_Linux_Arm64:
                     StaticProxy.StopAllLinuxArm64();
                     break;
-                case "linux-64":
+                case Platform_Linux_64:
                     StaticProxy.StopAllLinux();
                     break;
-                case "win-64":
+                case Platform_Win_64:
                     StaticProxy.StopAllx64();
                     break;
-                case "win-32":
+                case Platform_Win_32:
                     StaticProxy.StopAllx86();
                     break;
                 default:
-                    throw new Exception("Invalid platform");
+                    throw new Exception(Invalid_Platform);
             }
 
             proxyCounter.Clear();
@@ -490,8 +434,9 @@ namespace cloudsql_proxy_cs
         }
 
         /// <summary>
-        /// Gets the <see cref="cloudsql_proxy_cs.Status"/> of the Proxy.
+        /// Gets the <see cref="Status"/> of the Proxy.
         /// </summary>
+        /// <exception cref="InvalidProxyException"></exception>
         public Status GetStatus(string instances)
         {
             if (!tcss.ContainsKey(instances))
@@ -502,20 +447,20 @@ namespace cloudsql_proxy_cs
             int status;
             switch (Platform)
             {
-                case "linux-arm64":
+                case Platform_Linux_Arm64:
                     status = StaticProxy.GetStatusLinuxArm64(Encoding.UTF8.GetBytes(instances));
                     break;
-                case "linux-64":
+                case Platform_Linux_64:
                     status = StaticProxy.GetStatusLinux(Encoding.UTF8.GetBytes(instances));
                     break;
-                case "win-64":
+                case Platform_Win_64:
                     status = StaticProxy.GetStatusx64(Encoding.UTF8.GetBytes(instances));
                     break;
-                case "win-32":
+                case Platform_Win_32:
                     status = StaticProxy.GetStatusx86(Encoding.UTF8.GetBytes(instances));
                     break;
                 default:
-                    throw new Exception("Invalid platform");
+                    throw new Exception(Invalid_Platform);
             }
 
             return (Status)status;
@@ -523,7 +468,7 @@ namespace cloudsql_proxy_cs
 
         private void RunJob(object p)
         {
-            var jobParam = ((JobParams)p);
+            var jobParam = (JobParams)p;
 
             switch (jobParam.AuthenticationMethod)
             {
@@ -540,24 +485,24 @@ namespace cloudsql_proxy_cs
         {
             switch (platform)
             {
-                case "linux-arm64":
+                case Platform_Linux_Arm64:
                     statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
                     StaticProxy.StartProxyWithCredentialFileLinuxArm64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReferenceLinux);
                     break;
-                case "linux-64":
+                case Platform_Linux_64:
                     statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
                     StaticProxy.StartProxyWithCredentialFileLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReferenceLinux);
                     break;
-                case "win-64":
+                case Platform_Win_64:
                     statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialFilex64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
                     break;
-                case "win-32":
+                case Platform_Win_32:
                     statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialFilex86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenFile), statusCallbackReference);
                     break;
                 default:
-                    throw new Exception("Invalid platform");
+                    throw new Exception(Invalid_Platform);
             }
         }
 
@@ -565,24 +510,24 @@ namespace cloudsql_proxy_cs
         {
             switch (platform)
             {
-                case "linux-arm64":
+                case Platform_Linux_Arm64:
                     statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
                     StaticProxy.StartProxyWithCredentialJsonLinuxArm64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReferenceLinux);
                     break;
-                case "linux-64":
+                case Platform_Linux_64:
                     statusCallbackReferenceLinux = new StaticProxy.StatusCallbackLinux(SetStatus);
                     StaticProxy.StartProxyWithCredentialJsonLinux(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReferenceLinux);
                     break;
-                case "win-64":
+                case Platform_Win_64:
                     statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialJsonx64(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
                     break;
-                case "win-32":
+                case Platform_Win_32:
                     statusCallbackReference = new StaticProxy.StatusCallback(SetStatus);
                     StaticProxy.StartProxyWithCredentialJsonx86(Encoding.UTF8.GetBytes(instances), Encoding.UTF8.GetBytes(tokenJson), statusCallbackReference);
                     break;
                 default:
-                    throw new Exception("Invalid platform");
+                    throw new Exception(Invalid_Platform);
             }
         }
 
@@ -595,14 +540,14 @@ namespace cloudsql_proxy_cs
 
             switch (statusStr)
             {
-                case "connecting":
+                case StatusConnecting:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instanceStr,
                         Status = Status.Connecting
                     });
                     break;
-                case "connected":
+                case StatusConnected:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instanceStr,
@@ -614,7 +559,7 @@ namespace cloudsql_proxy_cs
                         tcss[instanceStr]?.TrySetResult("");
                     }
                     break;
-                case "error":
+                case StatusError:
                     OnStatusChanged?.Invoke(this, new StatusEventArgs()
                     {
                         Instance = instanceStr,
@@ -641,7 +586,7 @@ namespace cloudsql_proxy_cs
             }
         }
 
-        ///<inheritdoc cref="IDisposable"/> 
+        ///<inheritdoc cref="IDisposable"/>
         public void Dispose()
         {
             // instruct proxy to die
