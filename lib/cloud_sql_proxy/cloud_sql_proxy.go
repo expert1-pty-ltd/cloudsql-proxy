@@ -519,7 +519,7 @@ func StartProxy(_instances string, _tokenFile string, _tokenJson string) {
 		c, err := WatchInstances(ctx, instance, dir, cfgs, updates, newInstance.static, newInstance.client)
 		if err != nil {
 			SetStatus(instance, "error", fmt.Sprintf("%v", err))
-			logging.Errorf("%v", err)
+			logging.Errorf("Watch err: %v", err)
 			return
 		}
 		newInstance.connSrc = c
@@ -583,6 +583,7 @@ func StopAll() {
 }
 
 func ShutdownProxy(instance string) {
+	SetStatus(instance, "disconnected", "")
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
 
 	// shutdown connections

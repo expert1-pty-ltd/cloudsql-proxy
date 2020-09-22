@@ -52,6 +52,7 @@ func WatchInstances(ctx context.Context, instance string, dir string, cfgs []ins
 	for _, v := range cfgs {
 		l, err := listenInstance(ctx, instance, connectionChannels[instance], v)
 		if err != nil {
+			logging.Errorf("Watch error: %v", err)
 			return nil, err
 		}
 		static[v.Instance] = l
@@ -68,7 +69,7 @@ func watchInstancesLoop(ctx context.Context, instance string, dir string, dst ch
 	for instances := range updates {
 		list, err := parseInstanceConfigs(dir, strings.Split(instances, ","), cl)
 		if err != nil {
-			logging.Errorf("%v", err)
+			logging.Errorf("Watch error: %v", err)
 			// If we do not have a valid list of instances, skip this update
 			continue
 		}
