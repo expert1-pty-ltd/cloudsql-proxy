@@ -75,6 +75,8 @@ namespace cloudsql_proxy_cs
             }
         }
 
+        private bool disposed;
+
         private static StaticProxy.StatusCallback statusCallbackReference;
         private static StaticProxy.StatusCallbackLinux statusCallbackReferenceLinux;
 
@@ -589,8 +591,14 @@ namespace cloudsql_proxy_cs
         ///<inheritdoc cref="IDisposable"/>
         public void Dispose()
         {
-            // instruct proxy to die
-            StopAll();
+            if (!disposed)
+            {
+                // instruct proxy to die
+                StopAll();
+
+                // Note disposing has been done.
+                disposed = true;
+            }
         }
     }
 }
