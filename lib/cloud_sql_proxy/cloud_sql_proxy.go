@@ -583,7 +583,6 @@ func StopAll() {
 }
 
 func ShutdownProxy(instance string) {
-	SetStatus(instance, "disconnected", "")
 	logging.Infof("Stopping proxy. Waiting up to %s before terminating.", termTimeout)
 
 	// shutdown connections
