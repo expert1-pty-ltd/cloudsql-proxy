@@ -5,8 +5,6 @@
 # VS Code IDE
 .vs/
 
-tests/cloud_sql_proxy
-
 # ignore outputs
 *.exe
 *.dll
@@ -373,5 +371,4 @@ MigrationBackup/
 
 google_cloud_key.json
 
-!/lib/cloud_sql_proxy/extern.h
 launchSettings.json
