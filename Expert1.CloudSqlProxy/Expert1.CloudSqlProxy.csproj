@@ -2,16 +2,15 @@
 
   <PropertyGroup>
     <RootNamespace>Expert1.CloudSqlProxy</RootNamespace>
-    <TargetFramework>Net8.0</TargetFramework>
+    <TargetFrameworks>Net8.0;Net9.0</TargetFrameworks>
     <PackageOutputPath>bin\Release\</PackageOutputPath>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <Company>Expert1 Pty Ltd</Company>
     <Authors>Expert1 Pty Ltd</Authors>
     <Description>A .NET package for for connecting securely to your Cloud SQL instances for connecting securely to your Cloud SQL instances.</Description>
     <RepositoryUrl>https://github.com/expert1-pty-ltd/cloudsql-proxy</RepositoryUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageTags>Google;CloudSQL;Expert1</PackageTags>
-    <IncludeSymbols>False</IncludeSymbols>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Copyright>Copyright © Expert1 Pty Ltd</Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -30,8 +29,8 @@
     <PackageReference Include="Google.Apis.SQLAdmin.v1beta4" Version="1.69.0.3688" />
   </ItemGroup>
 
-  <Target Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' " Name="SignAssemblies" AfterTargets="Build">
-    <Exec Command="&quot;C:\Program Files (x86)\Windows Kits\10\App Certification Kit\signtool.exe&quot; sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 $(ProjectName).dll" WorkingDirectory="$(TargetDir)" />
+  <Target Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' AND '$(TargetFramework)' != '' " Name="SignAssemblies" AfterTargets="Build">
+    <Exec Command="&quot;C:\Program Files (x86)\Windows Kits\10\App Certification Kit\signtool.exe&quot; sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 $(TargetDir)Expert1.CloudSqlProxy.dll" />
   </Target>
 
 </Project>

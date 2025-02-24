@@ -55,30 +55,5 @@ namespace Expert1.CloudSqlProxy
                 return (project, region, name);
             }
         }
-
-        public static string ExtractBase64FromPem(string pemString)
-        {
-            const string header = "-----BEGIN CERTIFICATE-----";
-            const string footer = "-----END CERTIFICATE-----";
-
-            ReadOnlySpan<char> pemSpan = pemString.AsSpan();
-
-            int start = pemSpan.IndexOf(header.AsSpan());
-            if (start == -1)
-            {
-                throw new ArgumentException("Invalid PEM format");
-            }
-
-            int end = pemSpan[(start + header.Length)..].IndexOf(footer.AsSpan());
-            if (end == -1)
-            {
-                throw new ArgumentException("Invalid PEM format");
-            }
-
-            end += start + header.Length;
-
-            ReadOnlySpan<char> base64Span = pemSpan.Slice(start + header.Length, end - start - header.Length);
-            return base64Span.Trim().ToString();
-        }
     }
 }

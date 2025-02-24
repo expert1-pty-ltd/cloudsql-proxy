@@ -4,6 +4,7 @@ using Google.Apis.SQLAdmin.v1beta4.Data;
 using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Expert1.CloudSqlProxy
@@ -15,7 +16,11 @@ namespace Expert1.CloudSqlProxy
     /// </summary>
     internal sealed class RemoteCertSource(SQLAdminService service)
     {
+#if NET9_0_OR_GREATER
+        private readonly Lock keyLock = new();
+#else
         private readonly object keyLock = new();
+#endif
         private RSA privateKey;
         private readonly SQLAdminService service = service;
 
@@ -45,9 +50,14 @@ namespace Expert1.CloudSqlProxy
 
             ConnectResource.GenerateEphemeralCertRequest request = service.Connect.GenerateEphemeralCert(generateCertRequest, project, regionName);
             GenerateEphemeralCertResponse response = await RetryWithBackoffAsync(() => request.ExecuteAsync());
-            using X509Certificate2 certificate = new(Convert.FromBase64String(Utilities.ExtractBase64FromPem(response.EphemeralCert.Cert)));
-            using X509Certificate2 certWithKey = certificate.CopyWithPrivateKey(key);
-            return new X509Certificate2(certWithKey.Export(X509ContentType.Pkcs12));
+            using X509Certificate2 certificate = X509Certificate2.CreateFromPem(response.EphemeralCert.Cert.AsSpan());
+            X509Certificate2 certWithKey = certificate.CopyWithPrivateKey(key);
+            byte[] pfxData = certWithKey.Export(X509ContentType.Pkcs12);
+#if NET9_0_OR_GREATER
+            return X509CertificateLoader.LoadPkcs12(pfxData, password: null);
+#else
+            return new X509Certificate2(pfxData);
+#endif
         }
 
         private static async Task<T> RetryWithBackoffAsync<T>(Func<Task<T>> action, int retries = 5)

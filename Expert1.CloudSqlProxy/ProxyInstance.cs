@@ -142,7 +142,7 @@ namespace Expert1.CloudSqlProxy
         private async Task SetupCertificatesAsync()
         {
             ConnectSettings connectSettings = await sqlAdminService.Connect.Get(project, instanceId).ExecuteAsync(cts.Token);
-            serverCaCert = new X509Certificate2(Convert.FromBase64String(Utilities.ExtractBase64FromPem(connectSettings.ServerCaCert.Cert)));
+            serverCaCert = X509Certificate2.CreateFromPem(connectSettings.ServerCaCert.Cert.AsSpan());
             clientCert = await certSource.GetCertificateAsync(Instance);
         }
 
