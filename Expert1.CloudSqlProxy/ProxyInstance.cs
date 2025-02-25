@@ -70,19 +70,34 @@ namespace Expert1.CloudSqlProxy
         /// Start the proxy instance. This method will block until the proxy is connected.
         /// </summary>
         /// <param name="authenticationMethod">authentication method</param>
-        /// <param name="instance">instance;</param>
+        /// <param name="instance">instance</param>
         /// <param name="credentials">credential file or json</param>
         public static async Task<ProxyInstance> StartProxyAsync(
             AuthenticationMethod authenticationMethod,
             string instance,
             string credentials)
         {
-            ProxyInstance proxyInstance = await InstanceManager.GetOrCreateInstanceAsync(authenticationMethod, instance, credentials);
-            await proxyInstance.PrepareConnectionAsync();
+            ProxyInstance proxyInstance = await InstanceManager.GetOrCreateInstanceAsync(authenticationMethod, instance, credentials).ConfigureAwait(false);
+            await proxyInstance.PrepareConnectionAsync().ConfigureAwait(false);
             return proxyInstance;
         }
 
-        internal async Task PrepareConnectionAsync() 
+        /// <summary>
+        /// Start the proxy instance. This method will block until the proxy is connected.
+        /// </summary>
+        /// <param name="authenticationMethod">authentication method</param>
+        /// <param name="instance">instance</param>
+        /// <param name="credentials">credential file or json</param>
+        public static ProxyInstance StartProxy(
+            AuthenticationMethod authenticationMethod,
+            string instance,
+            string credentials)
+        {
+            return StartProxyAsync(authenticationMethod, instance, credentials).GetAwaiter().GetResult();
+        }
+
+
+        internal async Task PrepareConnectionAsync()
             => await connectionPool.PrepareConnectionAsync(cts.Token);
 
         /// <summary>
