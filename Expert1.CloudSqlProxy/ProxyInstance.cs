@@ -38,6 +38,10 @@ namespace Expert1.CloudSqlProxy
         private X509Certificate2 clientCert;
         private X509Certificate2 serverCaCert;
         private ConnectionPool connectionPool;
+
+        /// <summary>
+        /// Google Cloud SQL Instance string
+        /// </summary>
         public string Instance => $"{project}:{region}:{instanceId}";
         private string TargetHost => $"{project}:{instanceId}";
 
@@ -105,6 +109,7 @@ namespace Expert1.CloudSqlProxy
         /// </summary>
         public static void StopAllInstances() => InstanceManager.StopAllInstances();
 
+        /// <inheritdoc/>
         public void Dispose() => InstanceManager.RemoveInstance(this);
 
         internal void Stop()

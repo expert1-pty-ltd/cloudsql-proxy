@@ -25,7 +25,7 @@ namespace Expert1.CloudSqlProxy
         /// <param name="serverAddress">The address of the server to connect to.</param>
         /// <param name="serverPort">The port number of the server to connect to.</param>
         /// <param name="maxConnections">The maximum number of connections the pool can manage simultaneously.</param>
-        /// <param name="cleanupInterval">
+        /// <param name="connectionIdleTimeout">
         /// The interval at which idle connections are checked and cleaned up.
         /// </param>
         public ConnectionPool(string serverAddress, int serverPort, int maxConnections, TimeSpan connectionIdleTimeout)
@@ -49,6 +49,7 @@ namespace Expert1.CloudSqlProxy
         /// <returns>A <see cref="TcpClient"/> representing the server connection.</returns>
         /// <exception cref="OperationCanceledException">
         /// Thrown if the operation is canceled via the <paramref name="cancellationToken"/>.
+        /// </exception>
         public async Task<TcpClient> AcquireConnectionAsync(CancellationToken cancellationToken)
         {
             await _semaphore.WaitAsync(cancellationToken);

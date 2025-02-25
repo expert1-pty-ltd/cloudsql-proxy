@@ -4,7 +4,7 @@
     <RootNamespace>Expert1.CloudSqlProxy</RootNamespace>
     <TargetFrameworks>Net8.0;Net9.0</TargetFrameworks>
     <PackageOutputPath>bin\Release\</PackageOutputPath>
-    <Version>2.0.2</Version>
+    <Version>2.0.3</Version>
     <Company>Expert1 Pty Ltd</Company>
     <Authors>Expert1 Pty Ltd</Authors>
     <Description>A .NET package for for connecting securely to your Cloud SQL instances for connecting securely to your Cloud SQL instances.</Description>
@@ -16,8 +16,14 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>true</IncludeSymbols>
     <DebugType>embedded</DebugType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="$(OutputPath)net8.0\$(AssemblyName).xml" Pack="true" PackagePath="lib/net8.0/" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <None Include="$(OutputPath)net9.0\$(AssemblyName).xml" Pack="true" PackagePath="lib/net9.0/" Condition="'$(TargetFramework)' == 'net9.0'" />
+  </ItemGroup>
+  
   <ItemGroup>
     <None Include="..\README.md">
       <Pack>True</Pack>
